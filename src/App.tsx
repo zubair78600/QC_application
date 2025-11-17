@@ -386,16 +386,30 @@ function App() {
 
   // Auto-save on navigation
   const handleSave = useCallback(async () => {
-    if (!workingDirectory || !csvFilename) return;
+    if (!workingDirectory || !csvFilename) {
+      console.warn('[Save] Cannot save - missing directory or filename');
+      return;
+    }
 
     try {
+      console.log('[Save] Starting save operation...');
       const csvPath = `${workingDirectory}/${csvFilename}`;
+
+      // Save CSV
+      console.log('[Save] Saving CSV to:', csvPath);
       await saveCSV(csvPath, results, customCards);
+      console.log('[Save] ✓ CSV saved');
+
+      // Save state (JSON)
+      console.log('[Save] Saving state...');
       await saveState(workingDirectory, currentIndex, imageList, results, qcName, csvFilename, customCards);
-      console.log('Saved successfully');
+      console.log('[Save] ✓ State saved');
+
+      console.log('[Save] ✓✓ All data saved successfully');
     } catch (error) {
-      console.error('Error saving:', error);
-      alert('Error saving data');
+      console.error('[Save] ✗ Error saving:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      alert(`Error saving data:\n${errorMsg}\n\nYour progress may not be saved.`);
     }
   }, [workingDirectory, csvFilename, results, customCards, currentIndex, imageList, qcName]);
 
@@ -503,13 +517,14 @@ function App() {
     if (!result) {
       // Create new result with parsed filename data
       const parsed = parseFilename(currentFilename);
-      console.log('Creating new record for:', currentFilename);
-      console.log('Parsed data:', parsed);
+      console.log('[Record] Creating new record for:', currentFilename);
+      console.log('[Record] Parsed filename data:', parsed);
+
       const newResult: QCRecord = {
         'Week Number': String(getWeekNumber(new Date())),
         'QC Date': formatDateTime(new Date()),
-        'Received Date': parsed.receivedDate,
-        'Namespace': parsed.namespace,
+        'Received Date': parsed.receivedDate || '',
+        'Namespace': parsed.namespace || '',
         'Filename': currentFilename,
         'QC Name': qcName,
         'QC Decision': '',
@@ -518,10 +533,23 @@ function App() {
         'Retouch Observations': '',
         'Next Action': '',
       };
-      console.log('New record:', newResult);
+
+      console.log('[Record] New record created:', {
+        'Week Number': newResult['Week Number'],
+        'QC Date': newResult['QC Date'],
+        'Received Date': newResult['Received Date'],
+        'Namespace': newResult['Namespace'],
+        'Filename': newResult['Filename']
+      });
+
       updateResult(currentFilename, newResult);
+
+      // Force save immediately after creating new record
+      setTimeout(() => {
+        handleSave();
+      }, 100);
     }
-  }, [currentIndex, workingDirectory, qcName]);
+  }, [currentIndex, workingDirectory, qcName, getResult, updateResult, handleSave]);
 
 
 

@@ -108,12 +108,26 @@ export async function saveCSV(
     });
 
     // Write to file
-    await invoke('write_text_file', {
-      filePath,
-      content: csv,
-    });
+    console.log('[CSV] Attempting to save CSV to:', filePath);
+    console.log('[CSV] Records to save:', normalizedRecords.length);
+
+    try {
+      await invoke('write_text_file', {
+        filePath,
+        content: csv,
+      });
+      console.log('[CSV] ✓ CSV saved successfully');
+    } catch (writeError) {
+      console.error('[CSV] ✗ Write failed:', writeError);
+      throw new Error(`Failed to write CSV: ${writeError}`);
+    }
   } catch (error) {
-    console.error('Error saving CSV:', error);
+    console.error('[CSV] ✗ Error saving CSV:', error);
+    // Show alert to user on Windows
+    if (typeof window !== 'undefined') {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      alert(`Failed to save CSV file:\n${errorMsg}\n\nPlease ensure:\n• You have write permissions\n• File is not open elsewhere\n• Sufficient disk space`);
+    }
     throw error;
   }
 }

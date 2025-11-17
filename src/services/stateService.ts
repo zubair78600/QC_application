@@ -55,6 +55,7 @@ export async function saveState(
 ): Promise<void> {
   try {
     const stateFilePath = getStateFilePath(directory);
+    console.log('[State] Saving state to:', stateFilePath);
 
     const state: SavedState = {
       currentIndex,
@@ -66,13 +67,21 @@ export async function saveState(
     };
 
     const content = JSON.stringify(state, null, 2);
+    console.log('[State] State data size:', content.length, 'bytes');
+    console.log('[State] Number of results:', Object.keys(results).length);
 
     await invoke('write_text_file', {
       filePath: stateFilePath,
       content,
     });
+
+    console.log('[State] ✓ State saved successfully');
   } catch (error) {
-    console.error('Error saving state:', error);
-    throw error;
+    console.error('[State] ✗ Error saving state:', error);
+    // Don't throw - state save failures shouldn't block the app
+    // User will lose session resume capability but can continue working
+    if (typeof window !== 'undefined') {
+      console.warn('[State] State save failed - continuing without state persistence');
+    }
   }
 }
