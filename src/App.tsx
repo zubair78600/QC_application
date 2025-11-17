@@ -7,7 +7,7 @@ import { useAppStore, DEFAULT_QC_NAMES } from './store/appStore';
 import { ImageViewer } from './components/ImageViewer/ImageViewer';
 import SimpleLayoutManager, { LayoutManagerRef } from './components/GridLayout/SimpleLayoutManager';
 import { NavigationBar } from './components/NavigationBar/NavigationBar';
-import { SettingsPanel } from './components/SettingsPanel/SettingsPanel';
+import { SettingsPanelNew } from './components/SettingsPanel/SettingsPanelNew';
 import { ButtonEffectsPanel } from './components/SettingsPanel/ButtonEffectsPanel';
 import { AnalyticsDashboard } from './components/Analytics/AnalyticsDashboard';
 import { loadCSV, saveCSV } from './services/csvService';
@@ -39,6 +39,7 @@ function App() {
 	    isReorganizeMode,
 	    qcObservations,
 	    retouchObservations,
+	    nextActionOptions,
 	    colorSettings,
 	    setWorkingDirectory,
 	    setImageList,
@@ -553,7 +554,7 @@ function App() {
 
 
 
-  const handleObservationShortcut = (index: number, panelType: 'qc' | 'retouch' = 'qc') => {
+  const handleObservationShortcut = (shortcutKey: string, panelType: 'qc' | 'retouch' = 'qc') => {
     const currentFilename = getCurrentFilename();
     if (!currentFilename) return;
 
@@ -565,9 +566,9 @@ function App() {
       return;
     }
 
-    // Get observation based on index and panel type
+    // Find observation by shortcut key (not by array index)
     const observations = panelType === 'qc' ? qcObservations : retouchObservations;
-    const observation = observations[index];
+    const observation = observations.find(obs => obs.shortcut.toLowerCase() === shortcutKey.toLowerCase());
     if (!observation) return;
 
     // Toggle observations for the focused panel
@@ -850,34 +851,32 @@ function App() {
           checkAutoAdvanceOrFocus(currentFilename);
         }
       }
-      // Observations shortcuts (1-6) - works on focused panel
-      else if (key >= '1' && key <= '6') {
+      // E key - Apply previous image's tags to current image
+      else if (key === 'e') {
         e.preventDefault();
-        handleObservationShortcut(parseInt(key) - 1, focusedPanel);
-      }
-      // Next Action shortcuts
-      else if (key === 'a') {
-        e.preventDefault();
-        handleNextActionShortcut('Retake');
-      } else if (key === 's' && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        handleNextActionShortcut('Retouch');
-      } else if (key === 'd') {
-        e.preventDefault();
-        handleNextActionShortcut('Ignore');
-      } else if (key === 'f') {
-        e.preventDefault();
-        handleNextActionShortcut('Blunder');
-      } else if (key === 'e') {
-        e.preventDefault();
-        // Apply previous image's tags to current image
         applyPreviousTags();
+      }
+      // Dynamic Observations shortcuts - check all shortcuts from store
+      else {
+        // Check if key matches any observation shortcut
+        const qcObs = qcObservations.find(obs => obs.shortcut.toLowerCase() === key);
+        const retouchObs = retouchObservations.find(obs => obs.shortcut.toLowerCase() === key);
+        const nextAction = nextActionOptions.find(opt => opt.shortcut.toLowerCase() === key);
+
+        if (qcObs || retouchObs) {
+          e.preventDefault();
+          handleObservationShortcut(key, focusedPanel);
+        } else if (nextAction && key !== 's') {
+          // Skip 's' if it's part of Ctrl+S
+          e.preventDefault();
+          handleNextActionShortcut(nextAction.label);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleNext, handlePrevious, handleFirst, handleLast, updateResult, getResult, handleUpdate, getCurrentFilename, handleNextActionShortcut, handleObservationShortcut, handleSaveAndExit, focusedPanel, checkAutoAdvanceOrFocus, applyPreviousTags, currentIndex, filteredImageList]);
+  }, [handleNext, handlePrevious, handleFirst, handleLast, updateResult, getResult, handleUpdate, getCurrentFilename, handleNextActionShortcut, handleObservationShortcut, handleSaveAndExit, focusedPanel, checkAutoAdvanceOrFocus, applyPreviousTags, currentIndex, filteredImageList, qcObservations, retouchObservations, nextActionOptions]);
 
   if (!isInitialized) {
     return (
@@ -997,10 +996,8 @@ function App() {
 
       {/* Unified Settings Modal */}
 	      {showSettings && (
-	        <SettingsPanel
+	        <SettingsPanelNew
 	          onClose={() => setShowSettings(false)}
-	          onOpenButtonEffects={() => setShowButtonEffects(true)}
-	          onOpenAnalyticsDashboard={() => setShowAnalytics(true)}
 	        />
 	      )}
 

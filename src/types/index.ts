@@ -15,7 +15,7 @@ export interface QCRecord {
   [key: string]: string;
 }
 
-// Custom Card definition
+// Custom Card definition (legacy - will be replaced by Panel system)
 export interface CustomCard {
   id: string;
   title: string;
@@ -26,11 +26,45 @@ export interface CustomCard {
   order: number;
 }
 
-// Observation option
+// Observation option (legacy)
 export interface ObservationOption {
   id: string;
   label: string;
   shortcut: string;
+}
+
+// New Panel System Types
+export interface SubOption {
+  id: string;
+  label: string;
+  shortcut: string;
+}
+
+export interface PanelOption {
+  id: string;
+  label: string;
+  shortcut: string;
+  hasSubOptions: boolean;
+  subOptions?: SubOption[];
+  subOptionType?: 'single' | 'multi'; // how to select sub-options
+}
+
+export interface Panel {
+  id: string;
+  name: string; // Display name (e.g., "QC Decision")
+  type: 'decision' | 'single' | 'multi' | 'text'; // Panel type
+  mandatory: boolean;
+  csvColumn: string; // Column name in CSV
+  options: PanelOption[]; // For decision/single/multi types
+  order: number; // Display order
+}
+
+// Auto-generated field configuration
+export interface AutoField {
+  key: string;
+  label: string;
+  enabled: boolean;
+  alwaysIncluded: boolean; // Cannot be disabled
 }
 
 // Grid Layout Item
@@ -61,15 +95,19 @@ export interface AppState {
 
   // UI state
   showIncompleteOnly: boolean;
-  customCards: CustomCard[];
+  customCards: CustomCard[]; // Legacy - kept for migration
   gridLayout: GridLayoutItem[];
   isReorganizeMode: boolean;
 
-  // Settings
+  // New Panel System
+  panels: Panel[];
+  autoFields: AutoField[];
+
+  // Settings (legacy - kept for migration)
   qcObservations: ObservationOption[];
   retouchObservations: ObservationOption[];
   nextActionOptions: Array<{id: string; label: string; shortcut: string}>;
-  
+
   // Color settings
   colorSettings: {
     primaryColor: string;
@@ -91,6 +129,8 @@ export interface AppState {
   updateResult: (filename: string, data: Partial<QCRecord>) => void;
   getResult: (filename: string) => QCRecord | undefined;
   setShowIncompleteOnly: (show: boolean) => void;
+
+  // Legacy card actions (kept for migration)
   addCustomCard: (card: CustomCard) => void;
   updateCustomCard: (id: string, card: Partial<CustomCard>) => void;
   deleteCustomCard: (id: string) => void;
@@ -101,6 +141,16 @@ export interface AppState {
   updateRetouchObservation: (id: string, updates: Partial<ObservationOption>) => void;
   addRetouchObservation: (observation: ObservationOption) => void;
   deleteRetouchObservation: (id: string) => void;
+
+  // New Panel System actions
+  createPanel: (panel: Panel) => void;
+  updatePanel: (id: string, updates: Partial<Panel>) => void;
+  deletePanel: (id: string) => void;
+  reorderPanels: (panels: Panel[]) => void;
+  updateAutoFields: (fields: AutoField[]) => void;
+  resetStructure: () => void; // Clear all panels and start fresh
+
+  // Grid and UI actions
   setGridLayout: (layout: GridLayoutItem[]) => void;
   setIsReorganizeMode: (mode: boolean) => void;
   resetGridLayout: () => void;

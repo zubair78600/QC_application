@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { AppState, ObservationOption, GridLayoutItem } from '../types';
+import { AppState, ObservationOption, GridLayoutItem, Panel, AutoField } from '../types';
 
 // Default QC Names from Python app
 export const DEFAULT_QC_NAMES = [
@@ -48,6 +48,20 @@ const DEFAULT_NEXT_ACTIONS = [
   { id: 'blunder', label: 'Blunder', shortcut: 'F' },
 ];
 
+// Default auto-generated fields
+const DEFAULT_AUTO_FIELDS: AutoField[] = [
+  { key: 'weekNumber', label: 'Week Number', enabled: true, alwaysIncluded: true },
+  { key: 'qcDate', label: 'QC Date', enabled: true, alwaysIncluded: true },
+  { key: 'filename', label: 'Filename', enabled: true, alwaysIncluded: true },
+  { key: 'qcName', label: 'QC Name', enabled: true, alwaysIncluded: true },
+  { key: 'receivedDate', label: 'Received Date', enabled: false, alwaysIncluded: false },
+  { key: 'namespace', label: 'Namespace', enabled: false, alwaysIncluded: false },
+  { key: 'token', label: 'Token', enabled: false, alwaysIncluded: false },
+  { key: 'uuid', label: 'UUID', enabled: false, alwaysIncluded: false },
+  { key: 'vendor', label: 'Vendor', enabled: false, alwaysIncluded: false },
+  { key: 'imageId', label: 'Image ID', enabled: false, alwaysIncluded: false },
+];
+
 export const useAppStore = create<AppState>((set, get) => ({
   // Initial state
   workingDirectory: null,
@@ -60,9 +74,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   customCards: [],
   gridLayout: DEFAULT_GRID_LAYOUT,
   isReorganizeMode: false,
+
+  // New Panel System
+  panels: [], // Start with empty panels - user creates their own
+  autoFields: DEFAULT_AUTO_FIELDS,
+
+  // Legacy (kept for migration)
   qcObservations: DEFAULT_QC_OBSERVATIONS,
   retouchObservations: DEFAULT_RETOUCH_OBSERVATIONS,
   nextActionOptions: DEFAULT_NEXT_ACTIONS,
+
   colorSettings: {
     primaryColor: '#667eea',
     activeColor: '#ffae0c',
@@ -204,6 +225,50 @@ export const useAppStore = create<AppState>((set, get) => ({
         ...colors,
       },
     }));
+  },
+
+  // New Panel System actions
+  createPanel: (panel) => {
+    const state = get();
+    set({
+      panels: [...state.panels, panel],
+    });
+  },
+
+  updatePanel: (id, updates) => {
+    const state = get();
+    set({
+      panels: state.panels.map((panel) =>
+        panel.id === id ? { ...panel, ...updates } : panel
+      ),
+    });
+  },
+
+  deletePanel: (id) => {
+    const state = get();
+    set({
+      panels: state.panels.filter((panel) => panel.id !== id),
+    });
+  },
+
+  reorderPanels: (panels) => {
+    set({ panels });
+  },
+
+  updateAutoFields: (fields) => {
+    set({ autoFields: fields });
+  },
+
+  resetStructure: () => {
+    set({
+      panels: [],
+      autoFields: DEFAULT_AUTO_FIELDS,
+      // Also reset legacy fields
+      customCards: [],
+      qcObservations: DEFAULT_QC_OBSERVATIONS,
+      retouchObservations: DEFAULT_RETOUCH_OBSERVATIONS,
+      nextActionOptions: DEFAULT_NEXT_ACTIONS,
+    });
   },
 
   loadState: (newState) => {
