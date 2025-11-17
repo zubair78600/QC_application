@@ -56,8 +56,20 @@ npm run tauri dev
 ```
 
 ### Build for Production
+
+**macOS:**
 ```bash
-npm run tauri build
+npm run tauri:build:mac
+```
+
+**Windows (via GitHub Actions):**
+1. Push code to GitHub
+2. Go to Actions tab
+3. Download `windows-app` artifact after build completes
+
+**Windows (local - requires Windows PC):**
+```bash
+npm run tauri:build:windows
 ```
 
 The built application will be in `src-tauri/target/release/bundle/`.

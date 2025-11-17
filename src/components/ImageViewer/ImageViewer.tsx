@@ -77,6 +77,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ imagePath }) => {
         minScale={0.1}
         maxScale={5}
         centerOnInit={true}
+        limitToBounds={false}
         doubleClick={{
           disabled: false,
           mode: 'reset',
@@ -105,7 +106,6 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ imagePath }) => {
                 onLoad={() => {
                   console.log('ImageViewer: Image loaded successfully!');
                 }}
-                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
               />
             </TransformComponent>
           </>

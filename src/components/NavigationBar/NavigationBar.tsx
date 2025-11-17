@@ -42,15 +42,21 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
 }) => {
   const progress = totalImages > 0 ? (completedCount / totalImages) * 100 : 0;
 
+  // Helper to blur button after click (fixes Windows focus issue)
+  const handleButtonClick = (callback: () => void) => (e: React.MouseEvent<HTMLButtonElement>) => {
+    callback();
+    e.currentTarget.blur();
+  };
+
   return (
     <div className="navigation-bar glass-card">
       {/* Row 1: Navigation Controls + Stats (left) + Progress (center) + Save (right) */}
       <div className="nav-top-row">
         <div className="nav-left-group">
-          <button className="nav-btn nav-icon-btn" onClick={onFirst} disabled={currentIndex === 0} title="First">
+          <button className="nav-btn nav-icon-btn" onClick={handleButtonClick(onFirst)} disabled={currentIndex === 0} title="First">
             ⏮
           </button>
-          <button className="nav-btn nav-icon-btn" onClick={onPrevious} disabled={currentIndex === 0} title="Previous">
+          <button className="nav-btn nav-icon-btn" onClick={handleButtonClick(onPrevious)} disabled={currentIndex === 0} title="Previous">
             ◀
           </button>
           <span className="nav-counter">
@@ -58,7 +64,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
           </span>
           <button
             className="nav-btn nav-icon-btn"
-            onClick={onNext}
+            onClick={handleButtonClick(onNext)}
             disabled={currentIndex >= visibleImages - 1}
             title="Next"
           >
@@ -66,7 +72,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
           </button>
           <button
             className="nav-btn nav-icon-btn"
-            onClick={onLast}
+            onClick={handleButtonClick(onLast)}
             disabled={currentIndex >= visibleImages - 1}
             title="Last"
           >
@@ -74,7 +80,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
           </button>
           <button
             className={`nav-btn incomplete-btn ${activeControl === 'incomplete' ? 'active' : ''}`}
-            onClick={onToggleIncomplete}
+            onClick={handleButtonClick(onToggleIncomplete)}
           >
             {showIncompleteOnly ? 'All' : 'Incomplete'}
           </button>
@@ -88,7 +94,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
           {/* Settings Icon */}
           <button
             className="nav-btn settings-icon-btn"
-            onClick={onOpenSettings}
+            onClick={handleButtonClick(onOpenSettings || (() => {}))}
             title="Settings"
           >
             ⚙️
@@ -119,7 +125,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
         </div>
 
         {/* Save Button - Positioned on far right */}
-        <button className="nav-btn save-btn-compact" onClick={onSave}>
+        <button className="nav-btn save-btn-compact" onClick={handleButtonClick(onSave)}>
           💾 Save
         </button>
       </div>
