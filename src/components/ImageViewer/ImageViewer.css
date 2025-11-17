@@ -1,0 +1,114 @@
+.image-viewer-container {
+  width: 100%;
+  min-height: 200px;
+  min-width: 300px;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid transparent;
+}
+
+.image-viewer-placeholder {
+  text-align: center;
+  color: var(--c-content);
+}
+
+.image-viewer-placeholder p {
+  margin: 10px 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.placeholder-hint {
+  font-size: 14px !important;
+  opacity: 0.7;
+  font-weight: 400 !important;
+}
+
+.transform-wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.transform-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qc-image {
+  cursor: grab;
+  user-select: none;
+}
+
+.qc-image:active {
+  cursor: grabbing;
+}
+
+.image-controls {
+  position: absolute;
+  top: clamp(8px, 3%, 20px);
+  right: clamp(8px, 3%, 20px);
+  display: flex;
+  gap: clamp(4px, 1.5%, 10px);
+  z-index: 10;
+}
+
+.control-btn {
+  width: clamp(24px, 5%, 32px);
+  height: clamp(24px, 5%, 32px);
+  border-radius: clamp(4px, 1%, 6px);
+  border: none;
+  background-color: color-mix(in srgb, var(--c-glass) 15%, transparent);
+  backdrop-filter: blur(8px) saturate(var(--saturation));
+  -webkit-backdrop-filter: blur(8px) saturate(var(--saturation));
+  color: var(--c-content);
+  font-size: clamp(12px, 2.5%, 16px);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms ease;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.control-btn:hover {
+  background-color: color-mix(in srgb, var(--c-active) 80%, transparent);
+  color: white;
+  transform: scale(1.05);
+}
+
+.control-btn:active {
+  transform: scale(0.95);
+}
+
+.image-viewer-shell {
+  width: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.image-viewer-resize-handle {
+  margin-top: 6px;
+  height: 10px;
+  width: 140px;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--c-glass) 18%, transparent);
+  backdrop-filter: blur(8px) saturate(var(--saturation));
+  -webkit-backdrop-filter: blur(8px) saturate(var(--saturation));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+    0 2px 4px rgba(0, 0, 0, 0.35);
+  align-self: center;
+  cursor: ns-resize;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.image-viewer-shell.reorganize .image-viewer-resize-handle {
+  opacity: 1;
+}

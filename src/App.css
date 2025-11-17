@@ -1,0 +1,38 @@
+.app-container {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  padding: 15px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.app-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--c-content);
+}
+
+/* Custom Cards Section */
+.custom-cards-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.custom-card-wrapper {
+  min-width: 300px;
+}
+
+.custom-text-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
