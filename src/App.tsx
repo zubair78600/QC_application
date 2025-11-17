@@ -37,8 +37,11 @@ function App() {
 	    showIncompleteOnly,
 	    customCards,
 	    isReorganizeMode,
+	    qcDecisionOptions,
+	    retouchDecisionOptions,
 	    qcObservations,
 	    retouchObservations,
+	    nextActionOptions,
 	    colorSettings,
 	    setWorkingDirectory,
 	    setImageList,
@@ -205,18 +208,27 @@ function App() {
 	        }
 	      }
 	
-	      // Load global app settings (custom cards, observations, colors) from database
+	      // Load global app settings (custom cards, decisions, observations, next actions, colors) from database
 	      try {
 	        const settings = await loadAppSettings();
 	        const statePatch: any = {};
 	        if (settings.customCards) {
 	          statePatch.customCards = settings.customCards;
 	        }
+	        if (settings.qcDecisionOptions) {
+	          statePatch.qcDecisionOptions = settings.qcDecisionOptions;
+	        }
+	        if (settings.retouchDecisionOptions) {
+	          statePatch.retouchDecisionOptions = settings.retouchDecisionOptions;
+	        }
 	        if (settings.qcObservations) {
 	          statePatch.qcObservations = settings.qcObservations;
 	        }
 	        if (settings.retouchObservations) {
 	          statePatch.retouchObservations = settings.retouchObservations;
+	        }
+	        if (settings.nextActionOptions) {
+	          statePatch.nextActionOptions = settings.nextActionOptions;
 	        }
 	        if (settings.colorSettings) {
 	          statePatch.colorSettings = settings.colorSettings;
@@ -324,15 +336,18 @@ function App() {
 	    saveCustomCards();
 	  }, [customCards, workingDirectory, csvFilename, currentIndex, imageList, results, qcName]);
 
-		  // Persist app settings (custom cards, observations, colors, image viewer height) to database
+		  // Persist app settings (custom cards, decisions, observations, next actions, colors, image viewer height) to database
 		  useEffect(() => {
 		    if (!isInitialized) return;
 
 		    const saveSettingsToDb = async () => {
 		      try {
 		        await saveAppSetting('customCards', customCards);
+		        await saveAppSetting('qcDecisionOptions', qcDecisionOptions);
+		        await saveAppSetting('retouchDecisionOptions', retouchDecisionOptions);
 		        await saveAppSetting('qcObservations', qcObservations);
 		        await saveAppSetting('retouchObservations', retouchObservations);
+		        await saveAppSetting('nextActionOptions', nextActionOptions);
 		        await saveAppSetting('colorSettings', colorSettings);
 		        await saveAppSetting('imageViewerHeight', imageViewerHeight);
 		      } catch (error) {
@@ -340,7 +355,7 @@ function App() {
 		      }
 		    };
 		    saveSettingsToDb();
-		  }, [isInitialized, customCards, qcObservations, retouchObservations, colorSettings, imageViewerHeight]);
+		  }, [isInitialized, customCards, qcDecisionOptions, retouchDecisionOptions, qcObservations, retouchObservations, nextActionOptions, colorSettings, imageViewerHeight]);
 
   // Record timing and save the current image to the database
   const recordTimeForCurrentImage = useCallback(async () => {
@@ -532,6 +547,7 @@ function App() {
         'Retouch Quality': '',
         'Retouch Observations': '',
         'Next Action': '',
+        'Next Action Comment': '',
       };
 
       console.log('[Record] New record created:', {
@@ -553,7 +569,7 @@ function App() {
 
 
 
-  const handleObservationShortcut = (index: number, panelType: 'qc' | 'retouch' = 'qc') => {
+  const handleObservationShortcut = (shortcut: string, panelType: 'qc' | 'retouch' = 'qc') => {
     const currentFilename = getCurrentFilename();
     if (!currentFilename) return;
 
@@ -565,9 +581,11 @@ function App() {
       return;
     }
 
-    // Get observation based on index and panel type
+    // Get observation based on shortcut and panel type
     const observations = panelType === 'qc' ? qcObservations : retouchObservations;
-    const observation = observations[index];
+    const observation = observations.find(
+      (obs) => obs.shortcut && obs.shortcut.toLowerCase() === shortcut.toLowerCase()
+    );
     if (!observation) return;
 
     // Toggle observations for the focused panel
@@ -824,60 +842,96 @@ function App() {
         e.preventDefault();
         handleLast();
       }
-      // Quality shortcuts - Q for Right/Good, W for Wrong/Bad
-      else if (key === 'q') {
+      // Observation shortcuts (numeric) - use configured shortcuts for focused panel
+      else if (key >= '0' && key <= '9') {
         e.preventDefault();
-        const currentFilename = getCurrentFilename();
-        if (currentFilename) {
-          if (focusedPanel === 'qc') {
-            updateResult(currentFilename, { 'QC Decision': 'Right' });
-          } else {
-            updateResult(currentFilename, { 'Retouch Quality': 'Good' });
-          }
-          handleUpdate();
-          checkAutoAdvanceOrFocus(currentFilename);
-        }
-      } else if (key === 'w') {
-        e.preventDefault();
-        const currentFilename = getCurrentFilename();
-        if (currentFilename) {
-          if (focusedPanel === 'qc') {
-            updateResult(currentFilename, { 'QC Decision': 'Wrong', 'QC Observations': '' });
-          } else {
-            updateResult(currentFilename, { 'Retouch Quality': 'Bad' });
-          }
-          handleUpdate();
-          checkAutoAdvanceOrFocus(currentFilename);
-        }
+        handleObservationShortcut(key, focusedPanel);
       }
-      // Observations shortcuts (1-6) - works on focused panel
-      else if (key >= '1' && key <= '6') {
-        e.preventDefault();
-        handleObservationShortcut(parseInt(key) - 1, focusedPanel);
-      }
-      // Next Action shortcuts
-      else if (key === 'a') {
-        e.preventDefault();
-        handleNextActionShortcut('Retake');
-      } else if (key === 's' && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        handleNextActionShortcut('Retouch');
-      } else if (key === 'd') {
-        e.preventDefault();
-        handleNextActionShortcut('Ignore');
-      } else if (key === 'f') {
-        e.preventDefault();
-        handleNextActionShortcut('Blunder');
-      } else if (key === 'e') {
-        e.preventDefault();
-        // Apply previous image's tags to current image
-        applyPreviousTags();
+      // Decision / quality shortcuts and Next Action shortcuts - using configured keys
+      else if (!e.ctrlKey && !e.metaKey) {
+        const qcDecisionMatch = qcDecisionOptions.find(
+          (option) => option.shortcut && option.shortcut.toLowerCase() === key
+        );
+        const retouchDecisionMatch = retouchDecisionOptions.find(
+          (option) => option.shortcut && option.shortcut.toLowerCase() === key
+        );
+
+        if (qcDecisionMatch || retouchDecisionMatch) {
+          e.preventDefault();
+          const currentFilename = getCurrentFilename();
+          if (currentFilename) {
+            if (focusedPanel === 'qc' && qcDecisionMatch) {
+              const update: { 'QC Decision': '' | 'Right' | 'Wrong'; 'QC Observations'?: string } =
+                {
+                  'QC Decision': qcDecisionMatch.id as '' | 'Right' | 'Wrong',
+                };
+              if (qcDecisionMatch.id === 'Wrong') {
+                update['QC Observations'] = '';
+              }
+              updateResult(currentFilename, update);
+            } else if (focusedPanel === 'retouch' && retouchDecisionMatch) {
+              const newQuality = retouchDecisionMatch.id as '' | 'Good' | 'Bad';
+              updateResult(currentFilename, { 'Retouch Quality': newQuality });
+
+              // Preserve auto-behaviour: Good quality sets Next Action to Ignore and may auto-advance
+              if (newQuality === 'Good') {
+                updateResult(currentFilename, { 'Next Action': 'Ignore' });
+              }
+            }
+            handleUpdate();
+            if (currentFilename) {
+              checkAutoAdvanceOrFocus(currentFilename);
+            }
+          }
+        } else {
+          // Next Action shortcuts
+          const matchedAction = nextActionOptions.find(
+            (option) =>
+              option.label &&
+              option.label.trim() &&
+              !option.label.toLowerCase().includes('comment') &&
+              option.shortcut &&
+              option.shortcut.toLowerCase() === key
+          );
+          if (matchedAction) {
+            e.preventDefault();
+            handleNextActionShortcut(
+              matchedAction.label as '' | 'Retake' | 'Retouch' | 'Ignore' | 'Blunder'
+            );
+          } else if (key === 'e') {
+            e.preventDefault();
+            // Apply previous image's tags to current image
+            applyPreviousTags();
+          }
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleNext, handlePrevious, handleFirst, handleLast, updateResult, getResult, handleUpdate, getCurrentFilename, handleNextActionShortcut, handleObservationShortcut, handleSaveAndExit, focusedPanel, checkAutoAdvanceOrFocus, applyPreviousTags, currentIndex, filteredImageList]);
+  }, [
+    handleNext,
+    handlePrevious,
+    handleFirst,
+    handleLast,
+    updateResult,
+    getResult,
+    handleUpdate,
+    getCurrentFilename,
+    handleNextActionShortcut,
+    handleObservationShortcut,
+    handleSaveAndExit,
+    focusedPanel,
+    checkAutoAdvanceOrFocus,
+    applyPreviousTags,
+    currentIndex,
+    filteredImageList,
+    nextActionOptions,
+    qcObservations,
+    retouchObservations,
+    qcDecisionOptions,
+    retouchDecisionOptions,
+  ]);
 
   if (!isInitialized) {
     return (

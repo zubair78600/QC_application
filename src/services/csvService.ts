@@ -15,6 +15,7 @@ const BASE_COLUMNS = [
   'Retouch Quality',
   'Retouch Observations',
   'Next Action',
+  'Next Action Comment',
 ];
 
 /**

@@ -167,8 +167,8 @@ export function getMissingFields(
     missingFields.push('Retouch Observations');
   }
 
-  // Next Action must be set
-  if (!nextAction || !['Retake', 'Retouch', 'Ignore', 'Blunder'].includes(nextAction)) {
+  // Next Action must be set (any non-empty value is accepted)
+  if (!nextAction || !nextAction.trim()) {
     missingFields.push('Next Action');
   }
 

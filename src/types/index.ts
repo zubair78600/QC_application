@@ -11,6 +11,7 @@ export interface QCRecord {
   "Retouch Quality": "Good" | "Bad" | "";
   "Retouch Observations": string;
   "Next Action": "Retake" | "Retouch" | "Ignore" | "Blunder" | "";
+  "Next Action Comment": string;
   // Dynamic custom card fields
   [key: string]: string;
 }
@@ -66,6 +67,8 @@ export interface AppState {
   isReorganizeMode: boolean;
 
   // Settings
+  qcDecisionOptions: Array<{id: string; label: string; shortcut: string}>;
+  retouchDecisionOptions: Array<{id: string; label: string; shortcut: string}>;
   qcObservations: ObservationOption[];
   retouchObservations: ObservationOption[];
   nextActionOptions: Array<{id: string; label: string; shortcut: string}>;
@@ -101,6 +104,11 @@ export interface AppState {
   updateRetouchObservation: (id: string, updates: Partial<ObservationOption>) => void;
   addRetouchObservation: (observation: ObservationOption) => void;
   deleteRetouchObservation: (id: string) => void;
+  updateQCDecisionOption: (id: string, updates: Partial<{label: string; shortcut: string}>) => void;
+  updateRetouchDecisionOption: (id: string, updates: Partial<{label: string; shortcut: string}>) => void;
+  addNextActionOption: (option: {id: string; label: string; shortcut: string}) => void;
+  updateNextActionOption: (id: string, updates: Partial<{label: string; shortcut: string}>) => void;
+  deleteNextActionOption: (id: string) => void;
   setGridLayout: (layout: GridLayoutItem[]) => void;
   setIsReorganizeMode: (mode: boolean) => void;
   resetGridLayout: () => void;

@@ -9,11 +9,22 @@ interface RetouchPanelProps {
 }
 
 export const RetouchPanel: React.FC<RetouchPanelProps> = ({ currentFilename, onUpdate, onAutoAdvance, isFocused = false }) => {
-  const { getResult, updateResult, retouchObservations, results } = useAppStore();
+  const { getResult, updateResult, retouchObservations, retouchDecisionOptions, results } = useAppStore();
 
   const [retouchQuality, setRetouchQuality] = useState<string>('');
   const [selectedObs, setSelectedObs] = useState<string[]>([]);
   const [comment, setComment] = useState('');
+
+  const isCommentLabel = (label: string) =>
+    label.toLowerCase().includes('comment');
+
+  const standardObservationLabels = retouchObservations
+    .map((obs) => obs.label)
+    .filter((label) => !isCommentLabel(label));
+
+  const commentObservationLabels = retouchObservations
+    .map((obs) => obs.label)
+    .filter((label) => isCommentLabel(label));
 
   useEffect(() => {
     if (currentFilename) {
@@ -21,27 +32,29 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({ currentFilename, onU
       if (result) {
         setRetouchQuality(result['Retouch Quality'] || '');
         const obs = result['Retouch Observations'] || '';
-        const obsList = obs.split(';').filter(o => o.trim());
+        const obsList = obs.split(';').filter((o) => o.trim());
 
-        // Separate standard observations from custom comment
-        const standardObs = obsList.filter(o =>
-          ['Outline', 'Shadow', 'Perspective', 'License Plate', 'Background'].includes(o)
+        const standardObs = obsList.filter((o) =>
+          standardObservationLabels.includes(o)
         );
 
-        const hasCommentFlag = obsList.includes('Comment');
+        const commentLabels =
+          commentObservationLabels.length > 0 ? commentObservationLabels : ['Comment'];
 
-        // Extract comment text (anything that's not a standard observation or 'Comment' flag)
-        const commentText = obsList.filter(
-          o => !['Outline', 'Shadow', 'Perspective', 'License Plate', 'Background', 'Comment'].includes(o)
-        ).join('; ');
+        const hasCommentFlag = obsList.some((o) => commentLabels.includes(o));
 
-        // Keep Comment field open if user selected Comment or there is existing text
+        const commentText = obsList
+          .filter(
+            (o) =>
+              !standardObservationLabels.includes(o) && !commentLabels.includes(o)
+          )
+          .join('; ');
+
         const nextSelected = [...standardObs];
         if (hasCommentFlag || commentText.trim()) {
-          nextSelected.push('Comment');
+          nextSelected.push(commentLabels[0]);
         }
         setSelectedObs(nextSelected);
-
         setComment(commentText);
       } else {
         resetState();
@@ -78,11 +91,22 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({ currentFilename, onU
   };
 
   const handleObservationClick = (obs: string) => {
+    const commentLabels =
+      commentObservationLabels.length > 0 ? commentObservationLabels : ['Comment'];
+    const isComment = commentLabels.includes(obs);
+
     let newObs: string[];
     if (selectedObs.includes(obs)) {
-      newObs = selectedObs.filter(o => o !== obs);
+      newObs = selectedObs.filter((o) => o !== obs);
     } else {
-      newObs = [...selectedObs, obs];
+      if (isComment) {
+        newObs = [
+          ...selectedObs.filter((o) => !commentLabels.includes(o)),
+          obs,
+        ];
+      } else {
+        newObs = [...selectedObs, obs];
+      }
     }
     setSelectedObs(newObs);
 
@@ -98,15 +122,19 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({ currentFilename, onU
     setComment(newComment);
 
     if (currentFilename) {
-      // Keep only standard observations (not Comment flag or old comment text)
-      const standardObs = selectedObs.filter(o =>
-        ['Outline', 'Shadow', 'Perspective', 'License Plate', 'Background', 'Comment'].includes(o)
+      const commentLabels =
+        commentObservationLabels.length > 0 ? commentObservationLabels : ['Comment'];
+
+      const standardObs = selectedObs.filter(
+        (o) => !commentLabels.includes(o)
       );
 
-      // Start with standard observations
       const allObs = [...standardObs];
 
-      // Add the actual comment text if it has content
+      if (selectedObs.some((o) => commentLabels.includes(o))) {
+        allObs.push(commentLabels[0]);
+      }
+
       if (newComment.trim()) {
         allObs.push(newComment);
       }
@@ -117,7 +145,9 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({ currentFilename, onU
     }
   };
 
-  const showComment = selectedObs.includes('Comment');
+  const commentLabels =
+    commentObservationLabels.length > 0 ? commentObservationLabels : ['Comment'];
+  const showComment = selectedObs.some((o) => commentLabels.includes(o));
 
   return (
     <div className="glass-card retouch-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -133,42 +163,84 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({ currentFilename, onU
       </div>
       <div className="panel-content" style={{ padding: '10px 20px 20px 20px', flex: 1, overflow: 'hidden' }}>
         <div className="card-section">
-        <div className="button-group">
-          <button
-            className={`btn-option ${retouchQuality === 'Good' ? 'btn-active' : ''}`}
-            onClick={() => handleQualityClick('Good')}
-          >
-            [Q]: Good
-          </button>
-          <button
-            className={`btn-option ${retouchQuality === 'Bad' ? 'btn-active' : ''}`}
-            onClick={() => handleQualityClick('Bad')}
-          >
-            [W]: Bad
-          </button>
+          <div className="button-group">
+            {retouchDecisionOptions.map((option) => (
+              <button
+                key={option.id}
+                className={`btn-option ${retouchQuality === option.id ? 'btn-active' : ''}`}
+                onClick={() => handleQualityClick(option.id)}
+              >
+                [{option.shortcut}]: {option.label}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
 
       <div className="card-section">
         <h3 className="section-title">Retouch Observations:</h3>
         <div className="observation-grid">
-          {retouchObservations.slice(0, 5).map((obs) => (
-            <button
-              key={obs.id}
-              className={`obs-btn ${selectedObs.includes(obs.label) ? 'obs-active' : ''}`}
-              onClick={() => handleObservationClick(obs.label)}
-            >
-              [{obs.shortcut}]: {obs.label}
-            </button>
-          ))}
-          {!showComment ? (
-            <button
-              className="obs-btn"
-              onClick={() => handleObservationClick('Comment')}
-            >
-              [6]: Comment
-            </button>
-          ) : (
+          {retouchObservations.map((obs) => {
+            const isComment = isCommentLabel(obs.label);
+            const isSelected = selectedObs.includes(obs.label);
+
+            if (isComment && showComment && isSelected) {
+              return (
+                <div key={obs.id} style={{ width: '100%', position: 'relative' }}>
+                  <input
+                    type="text"
+                    placeholder="Enter comment..."
+                    value={comment}
+                    onChange={handleCommentChange}
+                    onBlur={() => {
+                      if (!comment.trim()) {
+                        const remaining = selectedObs.filter(
+                          (o) => !commentLabels.includes(o)
+                        );
+                        setSelectedObs(remaining);
+                        setComment('');
+                        if (currentFilename) {
+                          const obsString = remaining.join(';');
+                          updateResult(currentFilename, { 'Retouch Observations': obsString });
+                          onUpdate();
+                        }
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      backgroundColor: 'color-mix(in srgb, var(--c-glass) 12%, transparent)',
+                      backdropFilter: 'blur(8px) saturate(150%)',
+                      WebkitBackdropFilter: 'blur(8px) saturate(150%)',
+                      color: '#333',
+                      fontFamily: '"DM Sans", sans-serif',
+                      boxShadow: `
+                    inset 0 0 0 1px color-mix(in srgb, var(--c-light) 10%, transparent),
+                    inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) 90%, transparent),
+                    inset -2px -2px 0px -2px color-mix(in srgb, var(--c-light) 80%, transparent),
+                    inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) 60%, transparent),
+                    0px 1px 5px 0px color-mix(in srgb, var(--c-dark) 10%, transparent)
+                  `
+                    }}
+                  />
+                </div>
+              );
+            }
+
+            return (
+              <button
+                key={obs.id}
+                className={`obs-btn ${isSelected ? 'obs-active' : ''}`}
+                onClick={() => handleObservationClick(obs.label)}
+              >
+                [{obs.shortcut}]: {obs.label}
+              </button>
+            );
+          })}
+          {showComment && !retouchObservations.some((obs) => isCommentLabel(obs.label)) && (
             <div style={{ width: '100%', position: 'relative' }}>
               <input
                 type="text"
@@ -178,8 +250,8 @@ export const RetouchPanel: React.FC<RetouchPanelProps> = ({ currentFilename, onU
                 onBlur={() => {
                   // Only remove Comment if input is empty after blur
                   if (!comment.trim()) {
-                    const standardObs = selectedObs.filter(o =>
-                      ['Outline', 'Shadow', 'Perspective', 'License Plate', 'Background'].includes(o)
+                    const standardObs = selectedObs.filter(
+                      (o) => !commentLabels.includes(o)
                     );
                     setSelectedObs(standardObs);
                     setComment('');

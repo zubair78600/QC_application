@@ -41,6 +41,16 @@ const DEFAULT_RETOUCH_OBSERVATIONS: ObservationOption[] = [
   { id: 'comment', label: 'Comment', shortcut: '6' },
 ];
 
+const DEFAULT_QC_DECISIONS = [
+  { id: 'Right', label: 'Right', shortcut: 'Q' },
+  { id: 'Wrong', label: 'Wrong', shortcut: 'W' },
+];
+
+const DEFAULT_RETOUCH_DECISIONS = [
+  { id: 'Good', label: 'Good', shortcut: 'Q' },
+  { id: 'Bad', label: 'Bad', shortcut: 'W' },
+];
+
 const DEFAULT_NEXT_ACTIONS = [
   { id: 'retake', label: 'Retake', shortcut: 'A' },
   { id: 'retouch', label: 'Retouch', shortcut: 'S' },
@@ -60,6 +70,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   customCards: [],
   gridLayout: DEFAULT_GRID_LAYOUT,
   isReorganizeMode: false,
+  qcDecisionOptions: DEFAULT_QC_DECISIONS,
+  retouchDecisionOptions: DEFAULT_RETOUCH_DECISIONS,
   qcObservations: DEFAULT_QC_OBSERVATIONS,
   retouchObservations: DEFAULT_RETOUCH_OBSERVATIONS,
   nextActionOptions: DEFAULT_NEXT_ACTIONS,
@@ -183,6 +195,49 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
   },
 
+  // Decision options management
+  updateQCDecisionOption: (id, updates) => {
+    const state = get();
+    set({
+      qcDecisionOptions: state.qcDecisionOptions.map((option) =>
+        option.id === id ? { ...option, ...updates } : option
+      ),
+    });
+  },
+
+  updateRetouchDecisionOption: (id, updates) => {
+    const state = get();
+    set({
+      retouchDecisionOptions: state.retouchDecisionOptions.map((option) =>
+        option.id === id ? { ...option, ...updates } : option
+      ),
+    });
+  },
+
+  // Next Action options management (shortcuts only)
+  addNextActionOption: (option) => {
+    const state = get();
+    set({
+      nextActionOptions: [...state.nextActionOptions, option],
+    });
+  },
+
+  updateNextActionOption: (id, updates) => {
+    const state = get();
+    set({
+      nextActionOptions: state.nextActionOptions.map((option) =>
+        option.id === id ? { ...option, ...updates } : option
+      ),
+    });
+  },
+
+  deleteNextActionOption: (id) => {
+    const state = get();
+    set({
+      nextActionOptions: state.nextActionOptions.filter((option) => option.id !== id),
+    });
+  },
+
   // Grid Layout management
   setGridLayout: (layout) => {
     set({ gridLayout: layout });
@@ -225,6 +280,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       customCards: [],
       gridLayout: DEFAULT_GRID_LAYOUT,
       isReorganizeMode: false,
+      qcDecisionOptions: DEFAULT_QC_DECISIONS,
+      retouchDecisionOptions: DEFAULT_RETOUCH_DECISIONS,
       qcObservations: DEFAULT_QC_OBSERVATIONS,
       retouchObservations: DEFAULT_RETOUCH_OBSERVATIONS,
       nextActionOptions: DEFAULT_NEXT_ACTIONS,

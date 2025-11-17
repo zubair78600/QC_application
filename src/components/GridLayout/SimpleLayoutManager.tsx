@@ -51,7 +51,7 @@ const SimpleLayoutManager = forwardRef<LayoutManagerRef, SimpleLayoutManagerProp
         x: 20,
         y: 20,
         width: 350,
-        height: 400,
+        height: 460,
         zIndex: 1,
       },
       {
@@ -59,7 +59,7 @@ const SimpleLayoutManager = forwardRef<LayoutManagerRef, SimpleLayoutManagerProp
         x: 390,
         y: 20,
         width: 350,
-        height: 400,
+        height: 460,
         zIndex: 1,
       },
       {
@@ -130,7 +130,7 @@ const SimpleLayoutManager = forwardRef<LayoutManagerRef, SimpleLayoutManagerProp
         x: 20,
         y: 20,
         width: 350,
-        height: 400,
+        height: 460,
         zIndex: 1,
       },
       {
@@ -138,7 +138,7 @@ const SimpleLayoutManager = forwardRef<LayoutManagerRef, SimpleLayoutManagerProp
         x: 390,
         y: 20,
         width: 350,
-        height: 400,
+        height: 460,
         zIndex: 1,
       },
       {
