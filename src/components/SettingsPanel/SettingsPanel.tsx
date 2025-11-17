@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAppStore } from '../../store/appStore';
-import { CustomCard, ObservationOption } from '../../types';
+import { CustomCard } from '../../types';
 import { QCPanel } from '../QCPanel/QCPanel';
 import { RetouchPanel } from '../RetouchPanel/RetouchPanel';
 import { NextActionPanel } from '../NextActionPanel/NextActionPanel';
@@ -15,8 +15,6 @@ interface SettingsPanelProps {
   onOpenAnalyticsDashboard?: () => void;
 }
 
-type CardType = 'custom' | 'qc-obs' | 'retouch-obs';
-
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onClose,
   onOpenButtonEffects,
@@ -24,22 +22,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 }) => {
   const {
     customCards,
-    qcObservations,
-    retouchObservations,
     colorSettings,
     setIsReorganizeMode,
     deleteCustomCard,
-    addQCObservation,
-    updateQCObservation,
-    deleteQCObservation,
-    addRetouchObservation,
-    updateRetouchObservation,
-    deleteRetouchObservation,
     updateColorSettings,
   } = useAppStore();
 
-  const [cardType, setCardType] = useState<CardType>('custom');
-  const [editingObs, setEditingObs] = useState<ObservationOption | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [panelPosition, setPanelPosition] = useState<{ top: number; left: number }>({
@@ -109,74 +97,9 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     });
   };
 
-  // Observation form (used for both QC and Retouch)
-  const [obsFormData, setObsFormData] = useState({
-    id: '',
-    label: '',
-    shortcut: '',
-  });
-
-  const handleSubmitObservation = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newObs: ObservationOption = {
-      id: editingObs?.id || obsFormData.id.toLowerCase().replace(/\s+/g, '_'),
-      label: obsFormData.label,
-      shortcut: obsFormData.shortcut,
-    };
-
-    if (cardType === 'qc-obs') {
-      if (editingObs) {
-        updateQCObservation(editingObs.id, newObs);
-      } else {
-        addQCObservation(newObs);
-      }
-    } else if (cardType === 'retouch-obs') {
-      if (editingObs) {
-        updateRetouchObservation(editingObs.id, newObs);
-      } else {
-        addRetouchObservation(newObs);
-      }
-    }
-    resetObsForm();
-  };
-
-  const resetObsForm = () => {
-    setObsFormData({
-      id: '',
-      label: '',
-      shortcut: '',
-    });
-    setEditingObs(null);
-  };
-
-  const handleEditCard = (card: CustomCard) => {
-    setCardType('custom');
-    setEditingCustomCard(card);
-  };
-
-  const handleEditObs = (obs: ObservationOption, type: 'qc-obs' | 'retouch-obs') => {
-    setCardType(type);
-    setEditingObs(obs);
-    setObsFormData({
-      id: obs.id,
-      label: obs.label,
-      shortcut: obs.shortcut,
-    });
-  };
-
   const handleDeleteCard = (id: string) => {
     if (confirm('Delete this custom card?')) {
       deleteCustomCard(id);
-    }
-  };
-
-  const handleDeleteObs = (id: string, type: 'qc-obs' | 'retouch-obs') => {
-    if (confirm('Delete this observation?')) {
-      if (type === 'qc-obs') {
-        deleteQCObservation(id);
-      } else {
-        deleteRetouchObservation(id);
-      }
     }
   };
 
@@ -296,11 +219,29 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   <div className="custom-preview-grid">
                     {customCards.map((card) => (
                       <div key={card.id} className="custom-preview-item">
-                        <CustomCardPanel
-                          card={card}
-                          currentFilename={null}
-                          onUpdate={() => {}}
-                        />
+                        <div className="custom-preview-item-inner">
+                          <div className="custom-preview-item-actions">
+                            <button
+                              className="settings-preview-icon-btn"
+                              title="Edit custom panel"
+                              onClick={() => setEditingCustomCard(card)}
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              className="settings-preview-icon-btn"
+                              title="Delete custom panel"
+                              onClick={() => handleDeleteCard(card.id)}
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                          <CustomCardPanel
+                            card={card}
+                            currentFilename={null}
+                            onUpdate={() => {}}
+                          />
+                        </div>
                       </div>
                     ))}
                     <button
@@ -326,219 +267,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
               </div>
             </div>
           </div>
-
-          {/* Cards & observations configuration */}
-          <div className="cards-tab">
-            <div className="card-type-selector">
-              <button
-                className={`type-btn ${cardType === 'custom' ? 'active' : ''}`}
-                onClick={() => {
-                  setCardType('custom');
-                  resetObsForm();
-                }}
-              >
-                Custom Cards ({customCards.length})
-              </button>
-              <button
-                className={`type-btn ${cardType === 'qc-obs' ? 'active' : ''}`}
-                onClick={() => {
-                  setCardType('qc-obs');
-                  resetObsForm();
-                }}
-              >
-                QC Observations ({qcObservations.length})
-              </button>
-              <button
-                className={`type-btn ${cardType === 'retouch-obs' ? 'active' : ''}`}
-                onClick={() => {
-                  setCardType('retouch-obs');
-                  resetObsForm();
-                }}
-              >
-                Retouch Observations ({retouchObservations.length})
-              </button>
-            </div>
-
-            <div className="cards-content-grid">
-              {/* Form section */}
-              <div className="form-section glass-card">
-                {cardType === 'custom' ? (
-                  <>
-                    <h3>Custom Cards</h3>
-                    <p className="info-text">
-                      Use the + tiles in the preview above to add or edit custom panels.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <h3>{editingObs ? 'Edit Observation' : 'Add Observation'}</h3>
-                    <form onSubmit={handleSubmitObservation}>
-                      <div className="form-group">
-                        <label>Label *</label>
-                        <input
-                          type="text"
-                          value={obsFormData.label}
-                          onChange={(e) =>
-                            setObsFormData({ ...obsFormData, label: e.target.value })
-                          }
-                          placeholder="e.g., Wheel Alignment"
-                          required
-                        />
-                      </div>
-
-                      {!editingObs && (
-                        <div className="form-group">
-                          <label>ID * (lowercase, no spaces)</label>
-                          <input
-                            type="text"
-                            value={obsFormData.id}
-                            onChange={(e) =>
-                              setObsFormData({ ...obsFormData, id: e.target.value })
-                            }
-                            placeholder="e.g., wheel_alignment"
-                            required
-                          />
-                        </div>
-                      )}
-
-                      <div className="form-group">
-                        <label>Keyboard Shortcut *</label>
-                        <input
-                          type="text"
-                          maxLength={1}
-                          value={obsFormData.shortcut}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/[^0-9]/g, '');
-                            setObsFormData({ ...obsFormData, shortcut: value });
-                          }}
-                          placeholder="e.g., 7"
-                          required
-                        />
-                      </div>
-
-                      <div className="form-actions">
-                        <button type="submit" className="btn-primary">
-                          {editingObs ? 'Update' : 'Add'} Observation
-                        </button>
-                        {editingObs && (
-                          <button type="button" className="btn-secondary" onClick={resetObsForm}>
-                            Cancel
-                          </button>
-                        )}
-                      </div>
-                    </form>
-                  </>
-                )}
-              </div>
-
-              {/* Existing items list */}
-              <div className="cards-list-section glass-card">
-                <h3>
-                  {cardType === 'custom' && `Custom Cards (${customCards.length})`}
-                  {cardType === 'qc-obs' && `QC Observations (${qcObservations.length})`}
-                  {cardType === 'retouch-obs' &&
-                    `Retouch Observations (${retouchObservations.length})`}
-                </h3>
-
-                <div className="cards-list">
-                  {cardType === 'custom' && customCards.length === 0 && (
-                    <p className="empty-state">No custom cards yet.</p>
-                  )}
-                  {cardType === 'custom' &&
-                    customCards.map((card) => (
-                      <div key={card.id} className="card-item">
-                        <div className="card-info">
-                          <h4>{card.title}</h4>
-                          <p className="card-meta">
-                            <span className="field-name">{card.fieldName}</span>
-                            <span className="card-type">{card.type}</span>
-                            {card.mandatory && <span className="mandatory-badge">Mandatory</span>}
-                          </p>
-                          {card.options && (
-                            <p className="card-options">Options: {card.options.join(', ')}</p>
-                          )}
-                        </div>
-                        <div className="card-actions">
-                          <button
-                            className="btn-icon"
-                            onClick={() => handleEditCard(card)}
-                            title="Edit"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            className="btn-icon"
-                            onClick={() => handleDeleteCard(card.id)}
-                            title="Delete"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-
-                  {cardType === 'qc-obs' &&
-                    qcObservations.map((obs) => (
-                      <div key={obs.id} className="card-item">
-                        <div className="card-info">
-                          <h4>{obs.label}</h4>
-                          <p className="card-meta">
-                            <span className="field-name">ID: {obs.id}</span>
-                            <span className="shortcut-badge">Key: {obs.shortcut}</span>
-                          </p>
-                        </div>
-                        <div className="card-actions">
-                          <button
-                            className="btn-icon"
-                            onClick={() => handleEditObs(obs, 'qc-obs')}
-                            title="Edit"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            className="btn-icon"
-                            onClick={() => handleDeleteObs(obs.id, 'qc-obs')}
-                            title="Delete"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-
-                  {cardType === 'retouch-obs' &&
-                    retouchObservations.map((obs) => (
-                      <div key={obs.id} className="card-item">
-                        <div className="card-info">
-                          <h4>{obs.label}</h4>
-                          <p className="card-meta">
-                            <span className="field-name">ID: {obs.id}</span>
-                            <span className="shortcut-badge">Key: {obs.shortcut}</span>
-                          </p>
-                        </div>
-                        <div className="card-actions">
-                          <button
-                            className="btn-icon"
-                            onClick={() => handleEditObs(obs, 'retouch-obs')}
-                            title="Edit"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            className="btn-icon"
-                            onClick={() => handleDeleteObs(obs.id, 'retouch-obs')}
-                            title="Delete"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-              </div>
-            </div>
-          </div>
-          </div>
-            </>
+          {/* Former Cards & Observations tab removed - all editing happens via preview modals */}
+          </>
           )}
 
           {activeTab === 'colors' && (

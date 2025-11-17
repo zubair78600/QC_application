@@ -191,6 +191,20 @@
   min-height: 140px;
 }
 
+.custom-preview-item-inner {
+  position: relative;
+  height: 100%;
+}
+
+.custom-preview-item-actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+  z-index: 2;
+}
+
 .custom-preview-add-tile {
   min-height: 140px;
   border-radius: 12px;
