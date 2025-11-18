@@ -22,10 +22,10 @@ interface DailyRow {
 }
 
 export const DailyValidationChart: React.FC<DailyValidationChartProps> = ({
-    records,
-    timeframe,
-    periods,
-  }) => {
+  records,
+  timeframe,
+  periods,
+}) => {
   const data: DailyRow[] = React.useMemo(() => {
     const buckets = new Map<string, DailyRow>();
 
@@ -134,24 +134,27 @@ export const DailyValidationChart: React.FC<DailyValidationChartProps> = ({
               yAxisId="left"
               dataKey="baseValidated"
               stackId="a"
-              fill="#4CAF50"
-              name="Validated (Ignore / Other)"
+              fill="#2196F3"
+              name="Validated"
+              radius={[0, 0, 0, 0]}
             />
             <Bar
               yAxisId="left"
               dataKey="retouchBlunder"
               stackId="a"
               fill="#FF9800"
-              name="Retouch + Blunder"
+              name="Retouch & Blunder"
+              radius={[4, 4, 0, 0]}
             />
             <Line
               yAxisId="right"
               type="monotone"
               dataKey="percentage"
-              stroke="#2196F3"
-              strokeWidth={2.5}
-              dot={{ r: 3 }}
-              name="Retouch+Blunder %"
+              stroke="#F44336"
+              strokeWidth={3}
+              dot={{ r: 4, fill: '#F44336', strokeWidth: 2, stroke: '#fff' }}
+              activeDot={{ r: 6 }}
+              name="% Correction Trend"
             />
           </BarChart>
         </ResponsiveContainer>

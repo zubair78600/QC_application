@@ -55,7 +55,10 @@ export interface AppState {
   // Directory and file management
   workingDirectory: string | null;
   imageList: string[];
+  filteredImageList: string[]; // Added
   currentIndex: number;
+  sessionId: number | null; // Added
+  imageViewerHeight: number; // Added
 
   // QC data
   results: Record<string, QCRecord>;
@@ -72,12 +75,12 @@ export interface AppState {
   isReorganizeMode: boolean;
 
   // Settings
-  qcDecisionOptions: Array<{id: string; label: string; shortcut: string}>;
-  retouchDecisionOptions: Array<{id: string; label: string; shortcut: string}>;
+  qcDecisionOptions: Array<{ id: string; label: string; shortcut: string }>;
+  retouchDecisionOptions: Array<{ id: string; label: string; shortcut: string }>;
   qcObservations: ObservationOption[];
   retouchObservations: ObservationOption[];
-  nextActionOptions: Array<{id: string; label: string; shortcut: string}>;
-  
+  nextActionOptions: Array<{ id: string; label: string; shortcut: string }>;
+
   // Color settings
   colorSettings: {
     primaryColor: string;
@@ -99,7 +102,10 @@ export interface AppState {
   // Actions
   setWorkingDirectory: (dir: string | null) => void;
   setImageList: (images: string[]) => void;
+  setFilteredImageList: (images: string[]) => void; // Added
   setCurrentIndex: (index: number) => void;
+  setSessionId: (id: number | null) => void; // Added
+  setImageViewerHeight: (height: number) => void; // Added
   setQCName: (name: string) => void;
   setCSVFilename: (filename: string) => void;
   updateResult: (filename: string, data: Partial<QCRecord>) => void;
@@ -116,10 +122,10 @@ export interface AppState {
   updateRetouchObservation: (id: string, updates: Partial<ObservationOption>) => void;
   addRetouchObservation: (observation: ObservationOption) => void;
   deleteRetouchObservation: (id: string) => void;
-  updateQCDecisionOption: (id: string, updates: Partial<{label: string; shortcut: string}>) => void;
-  updateRetouchDecisionOption: (id: string, updates: Partial<{label: string; shortcut: string}>) => void;
-  addNextActionOption: (option: {id: string; label: string; shortcut: string}) => void;
-  updateNextActionOption: (id: string, updates: Partial<{label: string; shortcut: string}>) => void;
+  updateQCDecisionOption: (id: string, updates: Partial<{ label: string; shortcut: string }>) => void;
+  updateRetouchDecisionOption: (id: string, updates: Partial<{ label: string; shortcut: string }>) => void;
+  addNextActionOption: (option: { id: string; label: string; shortcut: string }) => void;
+  updateNextActionOption: (id: string, updates: Partial<{ label: string; shortcut: string }>) => void;
   deleteNextActionOption: (id: string) => void;
   setGridLayout: (layout: GridLayoutItem[]) => void;
   setIsReorganizeMode: (mode: boolean) => void;

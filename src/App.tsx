@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { invoke, convertFileSrc } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-dialog';
+import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
-import { useAppStore, DEFAULT_QC_NAMES } from './store/appStore';
+import { useAppStore } from './store/appStore';
 import { ImageViewer } from './components/ImageViewer/ImageViewer';
 import SimpleLayoutManager, { LayoutManagerRef } from './components/GridLayout/SimpleLayoutManager';
 import { NavigationBar } from './components/NavigationBar/NavigationBar';
@@ -11,67 +10,73 @@ import { SettingsPanel } from './components/SettingsPanel/SettingsPanel';
 import { ButtonEffectsPanel } from './components/SettingsPanel/ButtonEffectsPanel';
 import { UserNamesModal } from './components/UserNames/UserNamesModal';
 import { AnalyticsDashboard } from './components/Analytics/AnalyticsDashboard';
-import { loadCSV, saveCSV } from './services/csvService';
-import { loadState, saveState } from './services/stateService';
+import { StartupModal } from './components/StartupModal/StartupModal';
+import { ShortcutsMap } from './components/ShortcutsMap/ShortcutsMap';
+import { useAppInitialization } from './hooks/useAppInitialization';
+import { useShortcuts } from './hooks/useShortcuts';
+import { saveCSV } from './services/csvService';
+import { saveState } from './services/stateService';
 import {
-  initDatabase,
-  createSession,
   saveQcRecordToDatabase,
-  getDatabasePath,
-  loadAppSettings,
   saveAppSetting,
 } from './services/databaseService';
 import { useColorTheme } from './hooks/useColorTheme';
-import { parseFilename, getWeekNumber, formatDateTime, generateCSVFilename, generateOutputFolderName, isRecordComplete, getMissingFields } from './services/fileUtils';
+import { parseFilename, getWeekNumber, formatDateTime, generateOutputFolderName, isRecordComplete, getMissingFields } from './services/fileUtils';
 import { QCRecord } from './types';
 import './styles/glass-effect.css';
 import './App.css';
 
-const DEFAULT_WALLPAPER_SRC = new URL('../assets/Wallpaper.jpeg', import.meta.url).href;
+// DEFAULT_WALLPAPER_SRC removed
 
 function App() {
-	  const {
-	    workingDirectory,
-	    imageList,
-	    currentIndex,
-	    results,
-	    qcName,
-	    csvFilename,
-	    qcNames,
-	    showIncompleteOnly,
-	    customCards,
-	    isReorganizeMode,
-	    qcDecisionOptions,
-	    retouchDecisionOptions,
-	    qcObservations,
-	    retouchObservations,
-	    nextActionOptions,
-	    colorSettings,
-	    wallpaper,
-	    setWorkingDirectory,
-	    setImageList,
-	    setCurrentIndex,
-	    setQCName,
-	    setCSVFilename,
-	    updateResult,
-	    getResult,
-	    setShowIncompleteOnly,
-	    setIsReorganizeMode,
-	    loadState: loadStoreState,
-	  } = useAppStore();
+  const {
+    workingDirectory,
+    imageList,
+    filteredImageList,
+    currentIndex,
+    sessionId,
+    imageViewerHeight,
+    results,
+    qcName,
+    csvFilename,
+    qcNames,
+    showIncompleteOnly,
+    customCards,
+    isReorganizeMode,
+    qcDecisionOptions,
+    retouchDecisionOptions,
+    qcObservations,
+    retouchObservations,
+    nextActionOptions,
+    colorSettings,
+    wallpaper,
+    setFilteredImageList,
+    setCurrentIndex,
+    setImageViewerHeight,
+    updateResult,
+    getResult,
+    setShowIncompleteOnly,
+    setIsReorganizeMode,
+  } = useAppStore();
 
-	  const [isInitialized, setIsInitialized] = useState(false);
-	  const [sessionId, setSessionId] = useState<number | null>(null);
-	  const [filteredImageList, setFilteredImageList] = useState<string[]>([]);
+  const {
+    isInitialized,
+    showNameSelection,
+    startupWallpaperUrl,
+    startupWallpaperMode,
+    selectableNames,
+    finalizeInitialization
+  } = useAppInitialization();
+
   const [stats, setStats] = useState({ retouch: 0, retake: 0, wrong: 0, completed: 0 });
-	  const [showSettings, setShowSettings] = useState(false);
-	  const [showButtonEffects, setShowButtonEffects] = useState(false);
-	  const [showAnalytics, setShowAnalytics] = useState(false);
-	  const [showUserNames, setShowUserNames] = useState(false);
-	  const [imageViewerHeight, setImageViewerHeight] = useState<number>(400);
-	  const [focusedPanel, setFocusedPanel] = useState<'qc' | 'retouch'>('qc'); // Track which panel is focused
-	  const layoutManagerRef = useRef<LayoutManagerRef>(null);
-	  const imageStartTimeRef = useRef<number | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showButtonEffects, setShowButtonEffects] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showUserNames, setShowUserNames] = useState(false);
+  const [showShortcutsMap, setShowShortcutsMap] = useState(false);
+  const [focusedPanel, setFocusedPanel] = useState<'qc' | 'retouch'>('qc'); // Track which panel is focused
+  const layoutManagerRef = useRef<LayoutManagerRef>(null);
+  const imageStartTimeRef = useRef<number | null>(null);
 
   // Apply color theme
   useColorTheme();
@@ -92,238 +97,6 @@ function App() {
     };
     setupListeners();
   }, []);
-
-  // Initialize app - directory and QC name selection
-  useEffect(() => {
-    if (!isInitialized) {
-      initializeApp();
-    }
-  }, []);
-
-  const initializeApp = async () => {
-    try {
-      console.log('Starting initialization...');
-
-      // Prompt for directory
-      const selectedDir = await open({
-        directory: true,
-        multiple: false,
-        title: 'Select Image Directory',
-      });
-
-      console.log('Selected directory:', selectedDir);
-
-	      if (!selectedDir) {
-	        alert('No directory selected. Please restart the application.');
-	        setIsInitialized(true);
-	        return;
-	      }
-	
-	      const baseDirectory = selectedDir as string;
-	      setWorkingDirectory(baseDirectory);
-
-      // Ensure database exists and load global app settings (including wallpaper and user names)
-      let loadedSettings: Record<string, unknown> = {};
-      try {
-        await initDatabase(baseDirectory);
-        loadedSettings = await loadAppSettings();
-      } catch (settingsError) {
-        console.error('Error initializing app settings from database:', settingsError);
-      }
-
-      // Compute wallpaper for startup "Select Your Name" screen
-      let startupWallpaperUrl = DEFAULT_WALLPAPER_SRC;
-      let startupWallpaperMode: 'default' | 'image' | 'video' = 'default';
-      const wallpaperSetting = loadedSettings.wallpaper as
-        | { mode?: string; source?: string | null }
-        | undefined;
-
-      if (
-        wallpaperSetting &&
-        (wallpaperSetting.mode === 'image' || wallpaperSetting.mode === 'video') &&
-        wallpaperSetting.source
-      ) {
-        startupWallpaperMode = wallpaperSetting.mode as 'image' | 'video';
-        try {
-          startupWallpaperUrl = convertFileSrc(wallpaperSetting.source);
-        } catch (err) {
-          console.error('Error resolving startup wallpaper path:', err);
-          startupWallpaperUrl = DEFAULT_WALLPAPER_SRC;
-          startupWallpaperMode = 'default';
-        }
-      }
-
-      // Determine selectable QC names from saved settings (fallback to defaults)
-      const selectableNamesFromSettings =
-        Array.isArray(loadedSettings.qcNames) && (loadedSettings.qcNames as string[]).length > 0
-          ? (loadedSettings.qcNames as string[])
-          : DEFAULT_QC_NAMES;
-
-      // Prompt for QC Name - create a glass-effect select dialog using loaded QC names
-      const name = await new Promise<string>((resolve) => {
-        const dialog = document.createElement('div');
-        dialog.className = 'startup-overlay';
-
-        // Apply wallpaper background to the startup overlay
-        if (startupWallpaperMode === 'video' && startupWallpaperUrl) {
-          const video = document.createElement('video');
-          video.src = startupWallpaperUrl;
-          video.autoplay = true;
-          video.loop = true;
-          video.muted = true;
-          video.playsInline = true;
-          video.className = 'startup-wallpaper-video';
-          dialog.appendChild(video);
-        } else if (startupWallpaperUrl) {
-          dialog.style.backgroundImage = `url(${startupWallpaperUrl})`;
-          dialog.style.backgroundSize = 'cover';
-          dialog.style.backgroundPosition = 'center';
-        }
-
-        const content = document.createElement('div');
-        content.className = 'glass-card startup-card';
-
-        const title = document.createElement('h3');
-        title.textContent = 'Select Your Name';
-        title.className = 'startup-title';
-
-        const select = document.createElement('select');
-        select.className = 'glass-select startup-select';
-
-        const selectableNames = selectableNamesFromSettings;
-        selectableNames.forEach(qcName => {
-          const option = document.createElement('option');
-          option.value = qcName;
-          option.textContent = qcName;
-          select.appendChild(option);
-        });
-
-        const button = document.createElement('button');
-        button.textContent = 'OK';
-        button.className = 'btn-option btn-active startup-button';
-        button.onclick = () => {
-          resolve(select.value);
-          document.body.removeChild(dialog);
-        };
-
-        content.appendChild(title);
-        content.appendChild(select);
-        content.appendChild(button);
-        dialog.appendChild(content);
-        document.body.appendChild(dialog);
-      });
-
-      console.log('QC Name entered:', name);
-      setQCName(name);
-
-      // Load images
-	      console.log('Loading images from:', baseDirectory);
-	      const images = await invoke<string[]>('get_image_files', { directory: baseDirectory });
-      console.log('Found images:', images.length);
-
-      if (images.length === 0) {
-        alert('No .jpg images found in the selected directory.');
-        setIsInitialized(true);
-        return;
-      }
-
-	      setImageList(images);
-	      setFilteredImageList(images);
-
-	      // Start a new QC session
-	      try {
-	        const newSessionId = await createSession(baseDirectory, name, baseDirectory);
-	        setSessionId(newSessionId);
-
-	        // Log database path to console on every app load
-	        try {
-	          const dbPath = await getDatabasePath();
-	          console.log('QC Analytics database path:', dbPath);
-	        } catch (pathError) {
-	          console.error('Error getting database path:', pathError);
-	        }
-	      } catch (dbError) {
-	        console.error('Error initializing database/session:', dbError);
-	      }
-
-	      // Try to load existing state
-	      const savedState = await loadState(baseDirectory as string);
-
-      if (savedState) {
-        // Always resume from saved image/index without asking
-        loadStoreState({
-          results: savedState.results,
-          currentIndex: savedState.currentIndex,
-          customCards: savedState.customCards || [],
-        });
-        setCSVFilename(savedState.csvFilename);
-	      } else {
-	        // New session
-	        const newCSVFilename = generateCSVFilename(name);
-	        setCSVFilename(newCSVFilename);
-
-	        // Try to load existing CSV
-	        const separator = baseDirectory.includes('\\') ? '\\' : '/';
-	        const csvPath = `${baseDirectory}${separator}${newCSVFilename}`;
-	        const csvResults = await loadCSV(csvPath);
-	        if (Object.keys(csvResults).length > 0) {
-	          loadStoreState({ results: csvResults });
-	        }
-	      }
-	
-	      // Load global app settings (custom cards, decisions, observations, next actions, colors,
-	      // QC names, wallpaper, image viewer height) from database (already loaded above)
-	      try {
-	        const settings = loadedSettings;
-	        const statePatch: any = {};
-	        if (settings.customCards) {
-	          statePatch.customCards = settings.customCards;
-	        }
-	        if (settings.qcDecisionOptions) {
-	          statePatch.qcDecisionOptions = settings.qcDecisionOptions;
-	        }
-	        if (settings.retouchDecisionOptions) {
-	          statePatch.retouchDecisionOptions = settings.retouchDecisionOptions;
-	        }
-	        if (settings.qcObservations) {
-	          statePatch.qcObservations = settings.qcObservations;
-	        }
-	        if (settings.retouchObservations) {
-	          statePatch.retouchObservations = settings.retouchObservations;
-	        }
-	        if (settings.nextActionOptions) {
-	          statePatch.nextActionOptions = settings.nextActionOptions;
-	        }
-	        if (settings.colorSettings) {
-	          statePatch.colorSettings = settings.colorSettings;
-	        }
-	        if (settings.qcNames) {
-	          statePatch.qcNames = settings.qcNames;
-	        }
-	        if (settings.wallpaper) {
-	          statePatch.wallpaper = settings.wallpaper;
-	        }
-	        if (Object.keys(statePatch).length > 0) {
-	          loadStoreState(statePatch);
-	        }
-
-	        if (typeof settings.imageViewerHeight === 'number') {
-	          setImageViewerHeight(settings.imageViewerHeight);
-	        }
-	      } catch (settingsError) {
-	        console.error('Error loading app settings from database:', settingsError);
-	      }
-
-	      console.log('Initialization complete!');
-	      // Start timing for the first image
-	      imageStartTimeRef.current = Date.now();
-	      setIsInitialized(true);
-    } catch (error) {
-      console.error('Error initializing app:', error);
-      alert(`Error loading images: ${error}. Please check the directory and try again.`);
-      setIsInitialized(true); // Allow retry
-    }
-  };
 
   // Update filtered list based on incomplete filter
   useEffect(() => {
@@ -390,45 +163,45 @@ function App() {
     setStats({ retouch: retouchCount, retake: retakeCount, wrong: wrongCount, completed: completedCount });
   }, [results, customCards]);
 
-	  // Auto-save custom cards when they change
-	  useEffect(() => {
+  // Auto-save custom cards when they change
+  useEffect(() => {
     if (!workingDirectory || !csvFilename) return;
 
-	    const saveCustomCards = async () => {
-	      try {
-	        await saveState(workingDirectory, currentIndex, imageList, results, qcName, csvFilename, customCards);
-	      } catch (error) {
-	        console.error('Error saving custom cards:', error);
-	      }
+    const saveCustomCards = async () => {
+      try {
+        await saveState(workingDirectory, currentIndex, imageList, results, qcName, csvFilename, customCards);
+      } catch (error) {
+        console.error('Error saving custom cards:', error);
+      }
     };
 
-	    // Save immediately when custom cards change
-	    saveCustomCards();
-	  }, [customCards, workingDirectory, csvFilename, currentIndex, imageList, results, qcName]);
+    // Save immediately when custom cards change
+    saveCustomCards();
+  }, [customCards, workingDirectory, csvFilename, currentIndex, imageList, results, qcName]);
 
-		  // Persist app settings (custom cards, decisions, observations, next actions, colors,
-		  // QC names, wallpaper, image viewer height) to database
-		  useEffect(() => {
-		    if (!isInitialized) return;
+  // Persist app settings (custom cards, decisions, observations, next actions, colors,
+  // QC names, wallpaper, image viewer height) to database
+  useEffect(() => {
+    if (!isInitialized) return;
 
-		    const saveSettingsToDb = async () => {
-		      try {
-		        await saveAppSetting('customCards', customCards);
-		        await saveAppSetting('qcDecisionOptions', qcDecisionOptions);
-		        await saveAppSetting('retouchDecisionOptions', retouchDecisionOptions);
-		        await saveAppSetting('qcObservations', qcObservations);
-		        await saveAppSetting('retouchObservations', retouchObservations);
-		        await saveAppSetting('nextActionOptions', nextActionOptions);
-		        await saveAppSetting('colorSettings', colorSettings);
-		        await saveAppSetting('qcNames', qcNames);
-		        await saveAppSetting('wallpaper', wallpaper);
-		        await saveAppSetting('imageViewerHeight', imageViewerHeight);
-		      } catch (error) {
-		        console.error('Error saving app settings to database:', error);
-		      }
-		    };
-		    saveSettingsToDb();
-		  }, [isInitialized, customCards, qcDecisionOptions, retouchDecisionOptions, qcObservations, retouchObservations, nextActionOptions, colorSettings, qcNames, wallpaper, imageViewerHeight]);
+    const saveSettingsToDb = async () => {
+      try {
+        await saveAppSetting('customCards', customCards);
+        await saveAppSetting('qcDecisionOptions', qcDecisionOptions);
+        await saveAppSetting('retouchDecisionOptions', retouchDecisionOptions);
+        await saveAppSetting('qcObservations', qcObservations);
+        await saveAppSetting('retouchObservations', retouchObservations);
+        await saveAppSetting('nextActionOptions', nextActionOptions);
+        await saveAppSetting('colorSettings', colorSettings);
+        await saveAppSetting('qcNames', qcNames);
+        await saveAppSetting('wallpaper', wallpaper);
+        await saveAppSetting('imageViewerHeight', imageViewerHeight);
+      } catch (error) {
+        console.error('Error saving app settings to database:', error);
+      }
+    };
+    saveSettingsToDb();
+  }, [isInitialized, customCards, qcDecisionOptions, retouchDecisionOptions, qcObservations, retouchObservations, nextActionOptions, colorSettings, qcNames, wallpaper, imageViewerHeight]);
 
   // Record timing and save the current image to the database
   const recordTimeForCurrentImage = useCallback(async () => {
@@ -567,39 +340,39 @@ function App() {
     setFocusedPanel('qc'); // Reset focus to QC panel after navigation
   };
 
-	  // Auto-advance logic (currently not used with grid layout)
-	  // const handleAutoAdvance = useCallback(() => {
-	  //   const currentFilename = getCurrentFilename();
-	  //   if (!currentFilename) return;
-	
-	  //   const result = getResult(currentFilename);
-	  //   if (!result) return;
-	
-	  //   // Check if all mandatory fields are complete
-	  //   if (isRecordComplete(
-	  //     result['QC Decision'],
-	  //     result['QC Observations'],
-	  //     result['Retouch Quality'],
-	  //     result['Retouch Observations'],
-	  //     result['Next Action'],
-	  //     customCards,
-	  //     result
-	  //   )) {
-	  //     // Auto-advance to next image
-	  //     setTimeout(() => {
-	  //       handleNext();
-	  //     }, 100);
-	  //   }
-	  // }, [currentIndex, filteredImageList, results, customCards]);
-	
-	  // Get current filename
-	  function getCurrentFilename() {
-	    if (filteredImageList.length === 0 || currentIndex < 0 || currentIndex >= filteredImageList.length) {
-	      return null;
-	    }
-	    const fullPath = filteredImageList[currentIndex];
-	    return fullPath.split('/').pop() || fullPath.split('\\').pop() || fullPath;
-	  }
+  // Auto-advance logic (currently not used with grid layout)
+  // const handleAutoAdvance = useCallback(() => {
+  //   const currentFilename = getCurrentFilename();
+  //   if (!currentFilename) return;
+
+  //   const result = getResult(currentFilename);
+  //   if (!result) return;
+
+  //   // Check if all mandatory fields are complete
+  //   if (isRecordComplete(
+  //     result['QC Decision'],
+  //     result['QC Observations'],
+  //     result['Retouch Quality'],
+  //     result['Retouch Observations'],
+  //     result['Next Action'],
+  //     customCards,
+  //     result
+  //   )) {
+  //     // Auto-advance to next image
+  //     setTimeout(() => {
+  //       handleNext();
+  //     }, 100);
+  //   }
+  // }, [currentIndex, filteredImageList, results, customCards]);
+
+  // Get current filename
+  function getCurrentFilename() {
+    if (filteredImageList.length === 0 || currentIndex < 0 || currentIndex >= filteredImageList.length) {
+      return null;
+    }
+    const fullPath = filteredImageList[currentIndex];
+    return fullPath.split('/').pop() || fullPath.split('\\').pop() || fullPath;
+  }
 
   // Handle update (called when panels change)
   const handleUpdate = useCallback(() => {
@@ -785,7 +558,21 @@ function App() {
     // Only auto-advance to next image when all required fields are complete
     // User must manually switch between QC and Retouch panels using arrow keys
     if (focusedPanel === 'retouch' && result['Retouch Quality']) {
-      // Check if all required fields are complete for auto-advance
+      // Save and Exit shortcut (Ctrl+S) - works even in input fields
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSaveAndExit();
+        return;
+      }
+
+      // Toggle Shortcuts Map (?)
+      if (e.key === '?') {
+        e.preventDefault();
+        setShowShortcutsMap((prev) => !prev);
+        return;
+      }
+
+      // If typing in input field, don't process other shortcuts
       if (result['QC Decision'] && result['Next Action']) {
         setTimeout(() => {
           handleNext();
@@ -873,140 +660,27 @@ function App() {
   );
 
   // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      console.log('Key pressed:', e.key, 'Code:', e.code); // Debug log
-      const target = e.target as HTMLElement;
-      const isInputField = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
-
-      // Save and Exit shortcut (Ctrl+S) - works even in input fields
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        handleSaveAndExit();
-        return;
-      }
-
-      // If typing in input field, don't process other shortcuts
-      if (isInputField && e.key !== 'Escape') {
-        return;
-      }
-
-      const key = e.key.toLowerCase();
-
-      // Panel focus navigation (Up/Down arrows)
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setFocusedPanel('qc');
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setFocusedPanel('retouch');
-      }
-      // Image navigation shortcuts
-      else if (e.key === 'ArrowRight' || e.key === 'Tab') {
-        e.preventDefault();
-        handleNext();
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        handlePrevious();
-      } else if (e.key === 'Home') {
-        e.preventDefault();
-        handleFirst();
-      } else if (e.key === 'End') {
-        e.preventDefault();
-        handleLast();
-      }
-      // Observation shortcuts (numeric) - use configured shortcuts for focused panel
-      else if (key >= '0' && key <= '9') {
-        e.preventDefault();
-        handleObservationShortcut(key, focusedPanel);
-      }
-      // Decision / quality shortcuts and Next Action shortcuts - using configured keys
-      else if (!e.ctrlKey && !e.metaKey) {
-        const qcDecisionMatch = qcDecisionOptions.find(
-          (option) => option.shortcut && option.shortcut.toLowerCase() === key
-        );
-        const retouchDecisionMatch = retouchDecisionOptions.find(
-          (option) => option.shortcut && option.shortcut.toLowerCase() === key
-        );
-
-        if (qcDecisionMatch || retouchDecisionMatch) {
-          e.preventDefault();
-          const currentFilename = getCurrentFilename();
-          if (currentFilename) {
-            if (focusedPanel === 'qc' && qcDecisionMatch) {
-              const update: { 'QC Decision': '' | 'Right' | 'Wrong'; 'QC Observations'?: string } =
-                {
-                  'QC Decision': qcDecisionMatch.id as '' | 'Right' | 'Wrong',
-                };
-              if (qcDecisionMatch.id === 'Wrong') {
-                update['QC Observations'] = '';
-              }
-              updateResult(currentFilename, update);
-            } else if (focusedPanel === 'retouch' && retouchDecisionMatch) {
-              const newQuality = retouchDecisionMatch.id as '' | 'Good' | 'Bad';
-              updateResult(currentFilename, { 'Retouch Quality': newQuality });
-
-              // Preserve auto-behaviour: Good quality sets Next Action to Ignore and may auto-advance
-              if (newQuality === 'Good') {
-                updateResult(currentFilename, { 'Next Action': 'Ignore' });
-              }
-            }
-            handleUpdate();
-            if (currentFilename) {
-              checkAutoAdvanceOrFocus(currentFilename);
-            }
-          }
-        } else {
-          // Next Action shortcuts
-          const matchedAction = nextActionOptions.find(
-            (option) =>
-              option.label &&
-              option.label.trim() &&
-              !option.label.toLowerCase().includes('comment') &&
-              option.shortcut &&
-              option.shortcut.toLowerCase() === key
-          );
-          if (matchedAction) {
-            e.preventDefault();
-            handleNextActionShortcut(
-              matchedAction.label as '' | 'Retake' | 'Retouch' | 'Ignore' | 'Blunder'
-            );
-          } else if (key === 'e') {
-            e.preventDefault();
-            // Apply previous image's tags to current image
-            applyPreviousTags();
-          }
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
+  useShortcuts({
+    handleSaveAndExit,
+    setFocusedPanel,
     handleNext,
     handlePrevious,
     handleFirst,
     handleLast,
-    updateResult,
-    getResult,
-    handleUpdate,
-    getCurrentFilename,
-    handleNextActionShortcut,
     handleObservationShortcut,
-    handleSaveAndExit,
     focusedPanel,
-    checkAutoAdvanceOrFocus,
-    applyPreviousTags,
-    currentIndex,
-    filteredImageList,
-    nextActionOptions,
-    qcObservations,
-    retouchObservations,
     qcDecisionOptions,
     retouchDecisionOptions,
-  ]);
+    getCurrentFilename,
+    updateResult,
+    handleUpdate,
+    checkAutoAdvanceOrFocus,
+    nextActionOptions,
+    handleNextActionShortcut,
+    applyPreviousTags,
+  });
 
-  if (!isInitialized) {
+  if (!isInitialized && !showNameSelection) {
     return (
       <div className="app-loading">
         <p>Initializing...</p>
@@ -1020,6 +694,17 @@ function App() {
     );
   }
 
+  if (showNameSelection) {
+    return (
+      <StartupModal
+        qcNames={selectableNames}
+        wallpaperUrl={startupWallpaperUrl}
+        wallpaper={{ mode: startupWallpaperMode }}
+        onSelect={finalizeInitialization}
+      />
+    );
+  }
+
   const currentFilename = getCurrentFilename();
   const currentImagePath = filteredImageList[currentIndex] || null;
 
@@ -1030,123 +715,128 @@ function App() {
   return (
     <div className="app-root">
       <div className="app-container">
-      {/* Reorganize Mode Banner and Toolbar */}
-      {isReorganizeMode && (
-        <>
-          <div
-            style={{
-              position: 'absolute',
-              top: '10px',
-              right: '16px',
-              zIndex: 1000,
-              display: 'flex',
-              gap: '8px',
-              background: 'white',
-              padding: '12px',
-              borderRadius: '8px',
-              boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
-            }}
-          >
-            <button
-              className="nav-btn"
-              onClick={() => setIsReorganizeMode(false)}
-            >
-              Cancel
-            </button>
-            <button
-              className="nav-btn"
-              onClick={() => {
-                if (confirm('Reset all panels to default positions and sizes?')) {
-                  layoutManagerRef.current?.resetLayout();
-                }
-              }}
-            >
-              Reset to Default
-            </button>
-            <button
-              className="nav-btn"
+        {/* Reorganize Mode Banner and Toolbar */}
+        {isReorganizeMode && (
+          <>
+            <div
               style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                color: 'white',
-              }}
-              onClick={() => {
-                layoutManagerRef.current?.saveLayout();
-                setIsReorganizeMode(false);
+                position: 'absolute',
+                top: '10px',
+                right: '16px',
+                zIndex: 1000,
+                display: 'flex',
+                gap: '8px',
+                background: 'white',
+                padding: '12px',
+                borderRadius: '8px',
+                boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.15)',
               }}
             >
-              Save Layout
-            </button>
-          </div>
-        </>
-      )}
+              <button
+                className="nav-btn"
+                onClick={() => setIsReorganizeMode(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="nav-btn"
+                onClick={() => {
+                  if (confirm('Reset all panels to default positions and sizes?')) {
+                    layoutManagerRef.current?.resetLayout();
+                  }
+                }}
+              >
+                Reset to Default
+              </button>
+              <button
+                className="nav-btn"
+                style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                }}
+                onClick={() => {
+                  layoutManagerRef.current?.saveLayout();
+                  setIsReorganizeMode(false);
+                }}
+              >
+                Save Layout
+              </button>
+            </div>
+          </>
+        )}
 
-      <div
-        className={`image-viewer-shell ${isReorganizeMode ? 'reorganize' : ''}`}
-        style={{ height: `${imageViewerHeight}px`, minHeight: '200px' }}
-      >
-        <ImageViewer imagePath={currentImagePath} />
         <div
-          className="image-viewer-resize-handle"
-          onMouseDown={handleImageViewerResizeMouseDown}
+          className={`image-viewer-shell ${isReorganizeMode ? 'reorganize' : ''}`}
+          style={{ height: `${imageViewerHeight}px`, minHeight: '200px' }}
+        >
+          <ImageViewer imagePath={currentImagePath} />
+          <div
+            className="image-viewer-resize-handle"
+            onMouseDown={handleImageViewerResizeMouseDown}
+          />
+        </div>
+
+        <div className="card-container" style={{ overflow: isReorganizeMode ? 'auto' : 'hidden' }}>
+          <SimpleLayoutManager
+            ref={layoutManagerRef}
+            key={`grid-${isReorganizeMode ? 'edit' : 'view'}`}
+            currentFilename={currentFilename}
+            isDraggable={isReorganizeMode}
+            onUpdate={handleUpdate}
+            onAutoAdvance={handleNext}
+            focusedPanel={focusedPanel}
+          />
+        </div>
+
+        <NavigationBar
+          currentIndex={currentIndex}
+          totalImages={imageList.length}
+          visibleImages={filteredImageList.length}
+          onPrevious={handlePrevious}
+          onNext={handleNext}
+          onFirst={handleFirst}
+          onLast={handleLast}
+          showIncompleteOnly={showIncompleteOnly}
+          onToggleIncomplete={() => setShowIncompleteOnly(!showIncompleteOnly)}
+          retouchCount={stats.retouch}
+          retakeCount={stats.retake}
+          wrongCount={stats.wrong}
+          completedCount={stats.completed}
+          currentFilename={currentFilename || ''}
+          onSave={handleSaveAndExit}
+          onOpenSettings={() => setShowSettings(true)}
+          activeControl={showIncompleteOnly ? 'incomplete' : undefined}
         />
-      </div>
 
-      <div className="card-container" style={{ overflow: isReorganizeMode ? 'auto' : 'hidden' }}>
-        <SimpleLayoutManager
-          ref={layoutManagerRef}
-          key={`grid-${isReorganizeMode ? 'edit' : 'view'}`}
-          currentFilename={currentFilename}
-          isDraggable={isReorganizeMode}
-          onUpdate={handleUpdate}
-          onAutoAdvance={handleNext}
-          focusedPanel={focusedPanel}
-        />
-      </div>
+        {/* Unified Settings Modal */}
+        {showSettings && (
+          <SettingsPanel
+            onClose={() => setShowSettings(false)}
+            onOpenButtonEffects={() => setShowButtonEffects(true)}
+            onOpenAnalyticsDashboard={() => setShowAnalytics(true)}
+            onOpenShortcutsMap={() => setShowShortcutsMap(true)}
+          />
+        )}
 
-      <NavigationBar
-        currentIndex={currentIndex}
-        totalImages={imageList.length}
-        visibleImages={filteredImageList.length}
-        onPrevious={handlePrevious}
-        onNext={handleNext}
-        onFirst={handleFirst}
-        onLast={handleLast}
-        showIncompleteOnly={showIncompleteOnly}
-        onToggleIncomplete={() => setShowIncompleteOnly(!showIncompleteOnly)}
-        retouchCount={stats.retouch}
-        retakeCount={stats.retake}
-        wrongCount={stats.wrong}
-        completedCount={stats.completed}
-        currentFilename={currentFilename || ''}
-        onSave={handleSaveAndExit}
-        onOpenSettings={() => setShowSettings(true)}
-        activeControl={showIncompleteOnly ? 'incomplete' : undefined}
-      />
+        {/* Button Effects Card on main dashboard */}
+        {showButtonEffects && (
+          <ButtonEffectsPanel onClose={() => setShowButtonEffects(false)} />
+        )}
 
-      {/* Unified Settings Modal */}
-	      {showSettings && (
-	        <SettingsPanel
-	          onClose={() => setShowSettings(false)}
-	          onOpenButtonEffects={() => setShowButtonEffects(true)}
-	          onOpenAnalyticsDashboard={() => setShowAnalytics(true)}
-	        />
-	      )}
+        {showShortcutsMap && (
+          <ShortcutsMap onClose={() => setShowShortcutsMap(false)} />
+        )}
 
-	      {/* Button Effects Card on main dashboard */}
-	      {showButtonEffects && (
-	        <ButtonEffectsPanel onClose={() => setShowButtonEffects(false)} />
-	      )}
+        {showAnalytics && (
+          <AnalyticsDashboard
+            baseDirectory={workingDirectory}
+            onClose={() => setShowAnalytics(false)}
+          />
+        )}
 
-	      {showAnalytics && (
-	        <AnalyticsDashboard
-	          baseDirectory={workingDirectory}
-	          onClose={() => setShowAnalytics(false)}
-	        />
-	      )}
-
-	      {showUserNames && (
-	        <UserNamesModal onClose={() => setShowUserNames(false)} />
-	      )}
+        {showUserNames && (
+          <UserNamesModal onClose={() => setShowUserNames(false)} />
+        )}
       </div>
     </div>
   );

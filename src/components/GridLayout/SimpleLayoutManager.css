@@ -26,7 +26,7 @@
 }
 
 /* Force all child components to use full height when not draggable */
-.simple-panel:not(.draggable) .simple-panel-content > * {
+.simple-panel:not(.draggable) .simple-panel-content>* {
   height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
@@ -35,7 +35,8 @@
 /* Ensure immediate height adjustment when exiting draggable mode */
 .simple-panel:not(.draggable) .simple-panel-content {
   height: 100% !important;
-  transition: none !important; /* Remove transition for immediate effect */
+  transition: none !important;
+  /* Remove transition for immediate effect */
 }
 
 .simple-panel.draggable {
@@ -71,7 +72,8 @@
   gap: 8px;
   border-radius: var(--card-radius, 16px) var(--card-radius, 16px) 0 0;
   transition: all 0.2s ease;
-  flex-shrink: 0; /* Prevent handle from shrinking */
+  flex-shrink: 0;
+  /* Prevent handle from shrinking */
 }
 
 .simple-drag-handle .drag-icon {
@@ -93,13 +95,15 @@
   border-radius: var(--card-radius, 16px);
   height: 100%;
   transition: height 0.2s ease, border-radius 0.2s ease;
-  min-height: 0; /* Allow flex shrinking */
+  min-height: 0;
+  /* Allow flex shrinking */
   position: relative;
 }
 
 .simple-panel-content.with-handle {
   border-radius: 0 0 var(--card-radius, 16px) var(--card-radius, 16px);
-  height: calc(100% - 32px); /* Subtract drag handle height */
+  height: calc(100% - 32px);
+  /* Subtract drag handle height */
 }
 
 /* Override any existing panel styles to ensure proper sizing - preserve glass effect */

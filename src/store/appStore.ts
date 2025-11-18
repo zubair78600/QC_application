@@ -62,7 +62,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Initial state
   workingDirectory: null,
   imageList: [],
+  filteredImageList: [],
   currentIndex: 0,
+  sessionId: null,
+  imageViewerHeight: 400,
   results: {},
   qcName: '',
   csvFilename: '',
@@ -96,7 +99,13 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setImageList: (images) => set({ imageList: images }),
 
+  setFilteredImageList: (images) => set({ filteredImageList: images }),
+
   setCurrentIndex: (index) => set({ currentIndex: index }),
+
+  setSessionId: (id) => set({ sessionId: id }),
+
+  setImageViewerHeight: (height) => set({ imageViewerHeight: height }),
 
   setQCName: (name) => set({ qcName: name }),
 
@@ -310,7 +319,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({
       workingDirectory: null,
       imageList: [],
+      filteredImageList: [],
       currentIndex: 0,
+      sessionId: null,
+      imageViewerHeight: 400,
       results: {},
       qcName: '',
       csvFilename: '',

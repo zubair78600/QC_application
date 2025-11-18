@@ -108,7 +108,7 @@ const SimpleLayoutManager = forwardRef<LayoutManagerRef, SimpleLayoutManagerProp
 
   const updatePosition = (id: string, updates: Partial<PanelPosition>) => {
     setPositions(prev => {
-      const newPositions = prev.map(pos => 
+      const newPositions = prev.map(pos =>
         pos.id === id ? { ...pos, ...updates } : pos
       );
       // Auto-save positions when they change
@@ -229,10 +229,12 @@ const SimpleLayoutManager = forwardRef<LayoutManagerRef, SimpleLayoutManagerProp
           minWidth={100}
           minHeight={80}
           bounds="parent"
+          className={`simple-panel ${isDraggable ? 'draggable' : ''}`}
           style={{
             zIndex: position.zIndex,
+            // Ensure shadow is visible even when dragging/resizing
+            overflow: 'visible'
           }}
-          className={`simple-panel ${isDraggable ? 'draggable' : ''}`}
         >
           <div className="simple-panel-wrapper">
             <div className="simple-panel-content">

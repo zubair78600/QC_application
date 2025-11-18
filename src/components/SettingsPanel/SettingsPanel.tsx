@@ -13,13 +13,16 @@ import './SettingsPanel.css';
 interface SettingsPanelProps {
   onClose: () => void;
   onOpenButtonEffects?: () => void;
+  onOpenButtonEffects?: () => void;
   onOpenAnalyticsDashboard?: () => void;
+  onOpenShortcutsMap?: () => void;
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onClose,
   onOpenButtonEffects,
   onOpenAnalyticsDashboard,
+  onOpenShortcutsMap,
 }) => {
   const {
     customCards,
@@ -139,368 +142,379 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <div className="settings-content">
           {activeTab === 'panels' && (
             <>
-          {/* 2x2 grid of live panel previews */}
-          <div className="settings-preview-grid">
-            <div className="settings-preview-cell">
-              <div className="settings-preview-title-row">
-                <h3 className="settings-preview-title">QC Panel Preview</h3>
-                <div className="settings-preview-actions">
-                  <button
-                    className="settings-preview-icon-btn"
-                    title="Edit QC panel decisions and observations"
-                    onClick={() => setActivePanelModal('qc')}
-                  >
-                    ✏️
-                  </button>
+              {/* 2x2 grid of live panel previews */}
+              <div className="settings-preview-grid">
+                <div className="settings-preview-cell">
+                  <div className="settings-preview-title-row">
+                    <h3 className="settings-preview-title">QC Panel Preview</h3>
+                    <div className="settings-preview-actions">
+                      <button
+                        className="settings-preview-icon-btn"
+                        title="Edit QC panel decisions and observations"
+                        onClick={() => setActivePanelModal('qc')}
+                      >
+                        ✏️
+                      </button>
+                    </div>
+                  </div>
+                  <div className="settings-preview-panel">
+                    <QCPanel currentFilename={null} onUpdate={() => { }} isFocused />
+                  </div>
                 </div>
-              </div>
-              <div className="settings-preview-panel">
-                <QCPanel currentFilename={null} onUpdate={() => {}} isFocused />
-              </div>
-            </div>
 
-            <div className="settings-preview-cell">
-              <div className="settings-preview-title-row">
-                <h3 className="settings-preview-title">Retouch Panel Preview</h3>
-                <div className="settings-preview-actions">
-                  <button
-                    className="settings-preview-icon-btn"
-                    title="Edit Retouch panel decisions and observations"
-                    onClick={() => setActivePanelModal('retouch')}
-                  >
-                    ✏️
-                  </button>
+                <div className="settings-preview-cell">
+                  <div className="settings-preview-title-row">
+                    <h3 className="settings-preview-title">Retouch Panel Preview</h3>
+                    <div className="settings-preview-actions">
+                      <button
+                        className="settings-preview-icon-btn"
+                        title="Edit Retouch panel decisions and observations"
+                        onClick={() => setActivePanelModal('retouch')}
+                      >
+                        ✏️
+                      </button>
+                    </div>
+                  </div>
+                  <div className="settings-preview-panel">
+                    <RetouchPanel
+                      currentFilename={null}
+                      onUpdate={() => { }}
+                      onAutoAdvance={() => { }}
+                      isFocused
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="settings-preview-panel">
-                <RetouchPanel
-                  currentFilename={null}
-                  onUpdate={() => {}}
-                  onAutoAdvance={() => {}}
-                  isFocused
-                />
-              </div>
-            </div>
 
-            <div className="settings-preview-cell">
-              <div className="settings-preview-title-row">
-                <h3 className="settings-preview-title">Next Action Panel Preview</h3>
-                <div className="settings-preview-actions">
-                  <button
-                    className="settings-preview-icon-btn"
-                    title="Edit Next Action shortcuts"
-                    onClick={() => setActivePanelModal('nextAction')}
-                  >
-                    ✏️
-                  </button>
+                <div className="settings-preview-cell">
+                  <div className="settings-preview-title-row">
+                    <h3 className="settings-preview-title">Next Action Panel Preview</h3>
+                    <div className="settings-preview-actions">
+                      <button
+                        className="settings-preview-icon-btn"
+                        title="Edit Next Action shortcuts"
+                        onClick={() => setActivePanelModal('nextAction')}
+                      >
+                        ✏️
+                      </button>
+                    </div>
+                  </div>
+                  <div className="settings-preview-panel">
+                    <NextActionPanel
+                      currentFilename={null}
+                      onUpdate={() => { }}
+                      onAutoAdvance={() => { }}
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="settings-preview-panel">
-                <NextActionPanel
-                  currentFilename={null}
-                  onUpdate={() => {}}
-                  onAutoAdvance={() => {}}
-                />
-              </div>
-            </div>
 
-            <div className="settings-preview-cell">
-              <div className="settings-preview-title-row">
-                <h3 className="settings-preview-title">Custom Card Preview</h3>
-                <div className="settings-preview-actions">
-                  <button
-                    className="settings-preview-icon-btn"
-                    title="Add new custom panel"
-                    onClick={() => {
-                      setEditingCustomCard(null);
-                    }}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-              <div className="settings-preview-panel">
-                {customCards.length > 0 ? (
-                  <div className="custom-preview-grid">
-                    {customCards.map((card) => (
-                      <div key={card.id} className="custom-preview-item">
-                        <div className="custom-preview-item-inner">
-                          <div className="custom-preview-item-actions">
-                            <button
-                              className="settings-preview-icon-btn"
-                              title="Edit custom panel"
-                              onClick={() => setEditingCustomCard(card)}
-                            >
-                              ✏️
-                            </button>
-                            <button
-                              className="settings-preview-icon-btn"
-                              title="Delete custom panel"
-                              onClick={() => handleDeleteCard(card.id)}
-                            >
-                              🗑️
-                            </button>
+                <div className="settings-preview-cell">
+                  <div className="settings-preview-title-row">
+                    <h3 className="settings-preview-title">Custom Card Preview</h3>
+                    <div className="settings-preview-actions">
+                      <button
+                        className="settings-preview-icon-btn"
+                        title="Add new custom panel"
+                        onClick={() => {
+                          setEditingCustomCard(null);
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <div className="settings-preview-panel">
+                    {customCards.length > 0 ? (
+                      <div className="custom-preview-grid">
+                        {customCards.map((card) => (
+                          <div key={card.id} className="custom-preview-item">
+                            <div className="custom-preview-item-inner">
+                              <div className="custom-preview-item-actions">
+                                <button
+                                  className="settings-preview-icon-btn"
+                                  title="Edit custom panel"
+                                  onClick={() => setEditingCustomCard(card)}
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  className="settings-preview-icon-btn"
+                                  title="Delete custom panel"
+                                  onClick={() => handleDeleteCard(card.id)}
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                              <CustomCardPanel
+                                card={card}
+                                currentFilename={null}
+                                onUpdate={() => { }}
+                              />
+                            </div>
                           </div>
-                          <CustomCardPanel
-                            card={card}
-                            currentFilename={null}
-                            onUpdate={() => {}}
-                          />
-                        </div>
+                        ))}
+                        <button
+                          className="custom-preview-add-tile"
+                          onClick={() => {
+                            setEditingCustomCard(null);
+                          }}
+                          title="Add new custom panel"
+                        >
+                          +
+                        </button>
                       </div>
-                    ))}
+                    ) : (
+                      <button
+                        className="custom-preview-add-tile"
+                        onClick={() => {
+                          setEditingCustomCard(null);
+                        }}
+                      >
+                        + Add custom card
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ marginTop: 8, textAlign: 'right' }}>
                     <button
-                      className="custom-preview-add-tile"
+                      className="btn-secondary"
                       onClick={() => {
-                        setEditingCustomCard(null);
+                        if (confirm('Reset all custom cards to default (empty) set?')) {
+                          resetCustomCards();
+                        }
                       }}
-                      title="Add new custom panel"
                     >
-                      +
+                      Reset Custom Cards
                     </button>
                   </div>
-                ) : (
-                  <button
-                    className="custom-preview-add-tile"
-                    onClick={() => {
-                      setEditingCustomCard(null);
-                    }}
-                  >
-                    + Add custom card
-                  </button>
-                )}
+                </div>
               </div>
-              <div style={{ marginTop: 8, textAlign: 'right' }}>
-                <button
-                  className="btn-secondary"
-                  onClick={() => {
-                    if (confirm('Reset all custom cards to default (empty) set?')) {
-                      resetCustomCards();
-                    }
-                  }}
-                >
-                  Reset Custom Cards
-                </button>
-              </div>
-            </div>
-          </div>
-          {/* Former Cards & Observations tab removed - all editing happens via preview modals */}
-          </>
+              {/* Former Cards & Observations tab removed - all editing happens via preview modals */}
+            </>
           )}
 
           {activeTab === 'colors' && (
-          <div className="colors-tab">
-            <h3>Colors & Effects</h3>
+            <div className="colors-tab">
+              <h3>Colors & Effects</h3>
 
-            <div className="effects-actions">
-              <button
-                className="effect-btn"
-                onClick={() => {
-                  setIsReorganizeMode(true);
-                  onClose();
-                }}
-              >
-                Reorganise Cards
-              </button>
-              <button
-                className="effect-btn"
-                onClick={() => {
-                  if (onOpenAnalyticsDashboard) {
-                    onOpenAnalyticsDashboard();
-                  }
-                  onClose();
-                }}
-              >
-                View Analytics Dashboard
-              </button>
-              <button
-                className="effect-btn"
-                onClick={() => {
-                  if (onOpenButtonEffects) {
-                    onOpenButtonEffects();
-                  }
-                  onClose();
-                }}
-              >
-                Button Effects
-              </button>
-            </div>
-
-            <p className="info-text">
-              Adjust colors and effects. Changes are applied immediately.
-            </p>
-
-            <div className="color-settings-grid">
-              <div className="color-setting">
-                <label>Active Color (Selected Items)</label>
-                <div className="color-input-group">
-                  <input
-                    type="color"
-                    value={colorSettings.activeColor}
-                    onChange={(e) => updateColorSettings({ activeColor: e.target.value })}
-                    className="color-picker"
-                  />
-                  <input
-                    type="text"
-                    value={colorSettings.activeColor}
-                    onChange={(e) => updateColorSettings({ activeColor: e.target.value })}
-                    className="color-text-input"
-                    placeholder="#ffae0c"
-                  />
-                </div>
-              </div>
-
-              <div className="color-setting">
-                <label>Background Color</label>
-                <div className="color-input-group">
-                  <input
-                    type="color"
-                    value={colorSettings.backgroundColor}
-                    onChange={(e) => updateColorSettings({ backgroundColor: e.target.value })}
-                    className="color-picker"
-                  />
-                  <input
-                    type="text"
-                    value={colorSettings.backgroundColor}
-                    onChange={(e) => updateColorSettings({ backgroundColor: e.target.value })}
-                    className="color-text-input"
-                    placeholder="#ece9e9"
-                  />
-                </div>
-              </div>
-
-              <div className="color-setting">
-                <label>Glass Effect Color</label>
-                <div className="color-input-group">
-                  <input
-                    type="color"
-                    value={colorSettings.glassColor}
-                    onChange={(e) => updateColorSettings({ glassColor: e.target.value })}
-                    className="color-picker"
-                  />
-                  <input
-                    type="text"
-                    value={colorSettings.glassColor}
-                    onChange={(e) => updateColorSettings({ glassColor: e.target.value })}
-                    className="color-text-input"
-                    placeholder="#8e8e8e"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="color-presets">
-              <h4>Color Presets</h4>
-              <div className="preset-buttons">
+              <div className="effects-actions">
                 <button
-                  className="preset-btn"
-                  onClick={() =>
-                    updateColorSettings({
-                      activeColor: '#ffae0c',
-                      backgroundColor: '#ece9e9',
-                      glassColor: '#8e8e8e',
-                    })
-                  }
+                  className="effect-btn"
+                  onClick={() => {
+                    setIsReorganizeMode(true);
+                    onClose();
+                  }}
                 >
-                  Default
+                  Reorganise Cards
                 </button>
                 <button
-                  className="preset-btn"
-                  onClick={() =>
-                    updateColorSettings({
-                      activeColor: '#FF9800',
-                      backgroundColor: '#f5f5f5',
-                      glassColor: '#9E9E9E',
-                    })
-                  }
+                  className="effect-btn"
+                  onClick={() => {
+                    if (onOpenAnalyticsDashboard) {
+                      onOpenAnalyticsDashboard();
+                    }
+                    onClose();
+                  }}
                 >
-                  Green
+                  View Analytics Dashboard
                 </button>
                 <button
-                  className="preset-btn"
-                  onClick={() =>
-                    updateColorSettings({
-                      activeColor: '#FF5722',
-                      backgroundColor: '#e3f2fd',
-                      glassColor: '#90CAF9',
-                    })
-                  }
+                  className="effect-btn"
+                  onClick={() => {
+                    if (onOpenButtonEffects) {
+                      onOpenButtonEffects();
+                    }
+                    onClose();
+                  }}
                 >
-                  Blue
+                  Button Effects
                 </button>
                 <button
-                  className="preset-btn"
-                  onClick={() =>
-                    updateColorSettings({
-                      activeColor: '#FFC107',
-                      backgroundColor: '#f3e5f5',
-                      glassColor: '#CE93D8',
-                    })
-                  }
+                  className="effect-btn"
+                  onClick={() => {
+                    if (onOpenShortcutsMap) {
+                      onOpenShortcutsMap();
+                    }
+                    onClose();
+                  }}
                 >
-                  Purple
+                  Keyboard Shortcuts
                 </button>
               </div>
-            </div>
 
-            <div className="wallpaper-settings">
-              <h4>Wallpaper</h4>
               <p className="info-text">
-                Choose a background image or video for the QC workspace.
+                Adjust colors and effects. Changes are applied immediately.
               </p>
-              <div className="wallpaper-row">
-                <div className="wallpaper-status">
-                  {wallpaper.mode === 'default' && <span>Using default wallpaper</span>}
-                  {wallpaper.mode === 'image' && <span>Custom image selected</span>}
-                  {wallpaper.mode === 'video' && <span>Custom video selected</span>}
+
+              <div className="color-settings-grid">
+                <div className="color-setting">
+                  <label>Active Color (Selected Items)</label>
+                  <div className="color-input-group">
+                    <input
+                      type="color"
+                      value={colorSettings.activeColor}
+                      onChange={(e) => updateColorSettings({ activeColor: e.target.value })}
+                      className="color-picker"
+                    />
+                    <input
+                      type="text"
+                      value={colorSettings.activeColor}
+                      onChange={(e) => updateColorSettings({ activeColor: e.target.value })}
+                      className="color-text-input"
+                      placeholder="#ffae0c"
+                    />
+                  </div>
                 </div>
-                <div className="wallpaper-actions">
+
+                <div className="color-setting">
+                  <label>Background Color</label>
+                  <div className="color-input-group">
+                    <input
+                      type="color"
+                      value={colorSettings.backgroundColor}
+                      onChange={(e) => updateColorSettings({ backgroundColor: e.target.value })}
+                      className="color-picker"
+                    />
+                    <input
+                      type="text"
+                      value={colorSettings.backgroundColor}
+                      onChange={(e) => updateColorSettings({ backgroundColor: e.target.value })}
+                      className="color-text-input"
+                      placeholder="#ece9e9"
+                    />
+                  </div>
+                </div>
+
+                <div className="color-setting">
+                  <label>Glass Effect Color</label>
+                  <div className="color-input-group">
+                    <input
+                      type="color"
+                      value={colorSettings.glassColor}
+                      onChange={(e) => updateColorSettings({ glassColor: e.target.value })}
+                      className="color-picker"
+                    />
+                    <input
+                      type="text"
+                      value={colorSettings.glassColor}
+                      onChange={(e) => updateColorSettings({ glassColor: e.target.value })}
+                      className="color-text-input"
+                      placeholder="#8e8e8e"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="color-presets">
+                <h4>Color Presets</h4>
+                <div className="preset-buttons">
                   <button
-                    className="effect-btn"
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        const selected = await open({
-                          multiple: false,
-                          title: 'Select Wallpaper Image or Video',
-                          filters: [
-                            {
-                              name: 'Media',
-                              extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'mp4', 'mov', 'webm'],
-                            },
-                          ],
-                        });
-                        if (!selected) return;
-                        const path = selected as string;
-                        const lower = path.toLowerCase();
-                        const isVideo =
-                          lower.endsWith('.mp4') || lower.endsWith('.mov') || lower.endsWith('.webm');
-                        setWallpaper({
-                          mode: isVideo ? 'video' : 'image',
-                          source: path,
-                        });
-                      } catch (error) {
-                        console.error('Error selecting wallpaper:', error);
-                      }
-                    }}
+                    className="preset-btn"
+                    onClick={() =>
+                      updateColorSettings({
+                        activeColor: '#ffae0c',
+                        backgroundColor: '#ece9e9',
+                        glassColor: '#8e8e8e',
+                      })
+                    }
                   >
-                    Change Wallpaper
+                    Default
                   </button>
                   <button
-                    className="effect-btn"
-                    type="button"
-                    onClick={() => {
-                      if (confirm('Reset wallpaper to default image?')) {
-                        resetWallpaper();
-                      }
-                    }}
+                    className="preset-btn"
+                    onClick={() =>
+                      updateColorSettings({
+                        activeColor: '#FF9800',
+                        backgroundColor: '#f5f5f5',
+                        glassColor: '#9E9E9E',
+                      })
+                    }
                   >
-                    Reset to Default
+                    Green
+                  </button>
+                  <button
+                    className="preset-btn"
+                    onClick={() =>
+                      updateColorSettings({
+                        activeColor: '#FF5722',
+                        backgroundColor: '#e3f2fd',
+                        glassColor: '#90CAF9',
+                      })
+                    }
+                  >
+                    Blue
+                  </button>
+                  <button
+                    className="preset-btn"
+                    onClick={() =>
+                      updateColorSettings({
+                        activeColor: '#FFC107',
+                        backgroundColor: '#f3e5f5',
+                        glassColor: '#CE93D8',
+                      })
+                    }
+                  >
+                    Purple
                   </button>
                 </div>
               </div>
+
+              <div className="wallpaper-settings">
+                <h4>Wallpaper</h4>
+                <p className="info-text">
+                  Choose a background image or video for the QC workspace.
+                </p>
+                <div className="wallpaper-row">
+                  <div className="wallpaper-status">
+                    {wallpaper.mode === 'default' && <span>Using default wallpaper</span>}
+                    {wallpaper.mode === 'image' && <span>Custom image selected</span>}
+                    {wallpaper.mode === 'video' && <span>Custom video selected</span>}
+                  </div>
+                  <div className="wallpaper-actions">
+                    <button
+                      className="effect-btn"
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const selected = await open({
+                            multiple: false,
+                            title: 'Select Wallpaper Image or Video',
+                            filters: [
+                              {
+                                name: 'Media',
+                                extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'mp4', 'mov', 'webm'],
+                              },
+                            ],
+                          });
+                          if (!selected) return;
+                          const path = selected as string;
+                          const lower = path.toLowerCase();
+                          const isVideo =
+                            lower.endsWith('.mp4') || lower.endsWith('.mov') || lower.endsWith('.webm');
+                          setWallpaper({
+                            mode: isVideo ? 'video' : 'image',
+                            source: path,
+                          });
+                        } catch (error) {
+                          console.error('Error selecting wallpaper:', error);
+                        }
+                      }}
+                    >
+                      Change Wallpaper
+                    </button>
+                    <button
+                      className="effect-btn"
+                      type="button"
+                      onClick={() => {
+                        if (confirm('Reset wallpaper to default image?')) {
+                          resetWallpaper();
+                        }
+                      }}
+                    >
+                      Reset to Default
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
           )}
         </div>
         {activePanelModal && (

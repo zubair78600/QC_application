@@ -42,9 +42,10 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ imagePath }) => {
     };
   }, []);
 
-  const handleImageDoubleClick = () => {
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
     if (imagePath) {
-      console.log('ImageViewer: Double-click detected, opening in system viewer');
+      console.log('ImageViewer: Right-click detected, opening in system viewer');
       openInDefaultViewer(imagePath);
     }
   };
@@ -112,7 +113,11 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ imagePath }) => {
                 src={imageSrc}
                 alt="QC Image"
                 className="qc-image"
-                onDoubleClick={handleImageDoubleClick}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  resetTransform();
+                }}
+                onContextMenu={handleContextMenu}
                 onError={(e) => {
                   console.error('ImageViewer: Failed to load image', imageSrc);
                   console.error('ImageViewer: Error event:', e);

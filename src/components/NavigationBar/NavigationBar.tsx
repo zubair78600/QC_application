@@ -94,7 +94,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
           {/* Settings Icon */}
           <button
             className="nav-btn settings-icon-btn"
-            onClick={handleButtonClick(onOpenSettings || (() => {}))}
+            onClick={handleButtonClick(onOpenSettings || (() => { }))}
             title="Settings"
           >
             ⚙️
@@ -132,7 +132,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
 
       {/* Row 2: Filename */}
       <div className="nav-progress-row">
-        <span className="filename-text">{currentFilename || 'No file'}</span>
+        <span className="filename-text" style={{ fontSize: '1em', fontWeight: 'bold' }}>{currentFilename || 'No file'}</span>
       </div>
     </div>
   );
