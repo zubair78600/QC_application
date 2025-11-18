@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { Command } from '@tauri-apps/plugin-shell';
@@ -10,8 +10,8 @@ interface ImageViewerProps {
 
 export const ImageViewer: React.FC<ImageViewerProps> = ({ imagePath }) => {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [clickCount, setClickCount] = useState(0);
-  const [clickTimer, setClickTimer] = useState<NodeJS.Timeout | null>(null);
+  const [imageKey, setImageKey] = useState<number>(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (imagePath) {
@@ -19,43 +19,57 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ imagePath }) => {
       const src = convertFileSrc(imagePath);
       console.log('ImageViewer: Converted src:', src);
       setImageSrc(src);
-
-      // Preload next image for performance (will implement in App.tsx)
+      // Force re-render of TransformWrapper to reset zoom/pan on image change
+      setImageKey(prev => prev + 1);
     } else {
       setImageSrc(null);
     }
   }, [imagePath]);
 
-  const handleImageClick = () => {
-    setClickCount((prev) => prev + 1);
+  // Reset zoom when container size changes
+  useEffect(() => {
+    if (!containerRef.current) return;
 
-    if (clickTimer) {
-      clearTimeout(clickTimer);
+    const resizeObserver = new ResizeObserver(() => {
+      // Force TransformWrapper to recalculate on resize
+      setImageKey(prev => prev + 1);
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
+  const handleImageDoubleClick = () => {
+    if (imagePath) {
+      console.log('ImageViewer: Double-click detected, opening in system viewer');
+      openInDefaultViewer(imagePath);
     }
-
-    const timer = setTimeout(() => {
-      if (clickCount + 1 === 3 && imagePath) {
-        // Triple click: Open in default viewer
-        openInDefaultViewer(imagePath);
-      }
-      setClickCount(0);
-    }, 400);
-
-    setClickTimer(timer);
   };
 
   const openInDefaultViewer = async (path: string) => {
     try {
-      // Platform-specific open command
-      const command = process.platform === 'darwin'
-        ? Command.create('open', [path])
-        : process.platform === 'win32'
-        ? Command.create('cmd', ['/c', 'start', '', path])
-        : Command.create('xdg-open', [path]);
+      console.log('ImageViewer: Opening file in system viewer:', path);
 
-      await command.execute();
+      // Platform-specific open command
+      let command;
+      if (process.platform === 'darwin') {
+        // macOS
+        command = Command.create('open', [path]);
+      } else if (process.platform === 'win32') {
+        // Windows - use explorer.exe which handles spaces better
+        command = Command.create('explorer', [path]);
+      } else {
+        // Linux
+        command = Command.create('xdg-open', [path]);
+      }
+
+      const result = await command.execute();
+      console.log('ImageViewer: System viewer opened successfully', result);
     } catch (error) {
-      console.error('Error opening image:', error);
+      console.error('ImageViewer: Error opening image in system viewer:', error);
     }
   };
 
@@ -71,22 +85,22 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ imagePath }) => {
   }
 
   return (
-    <div className="image-viewer-container glass-card">
+    <div className="image-viewer-container glass-card" ref={containerRef}>
       <TransformWrapper
+        key={imageKey}
         initialScale={1}
         minScale={0.1}
         maxScale={5}
         centerOnInit={true}
         limitToBounds={false}
         doubleClick={{
-          disabled: false,
-          mode: 'reset',
+          disabled: true, // Disable built-in double-click to use custom handler
         }}
       >
         {({ resetTransform }) => (
           <>
             <div className="image-controls">
-              <button className="control-btn reset-btn" onClick={() => resetTransform()} title="Reset Zoom">
+              <button className="control-btn reset-btn" onClick={() => resetTransform()} title="Reset Zoom (or scroll to zoom)">
                 ⟲
               </button>
             </div>
@@ -98,7 +112,7 @@ export const ImageViewer: React.FC<ImageViewerProps> = ({ imagePath }) => {
                 src={imageSrc}
                 alt="QC Image"
                 className="qc-image"
-                onClick={handleImageClick}
+                onDoubleClick={handleImageDoubleClick}
                 onError={(e) => {
                   console.error('ImageViewer: Failed to load image', imageSrc);
                   console.error('ImageViewer: Error event:', e);

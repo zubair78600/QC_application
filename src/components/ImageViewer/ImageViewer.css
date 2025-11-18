@@ -49,7 +49,10 @@
   width: auto;
   height: auto;
   object-fit: contain;
+  object-position: center;
   display: block;
+  /* Ensure image doesn't get cropped */
+  image-rendering: auto;
 }
 
 .qc-image:active {
