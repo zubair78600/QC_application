@@ -111,10 +111,12 @@ export function generateOutputFolderName(qcName: string): string {
 }
 
 /**
- * Get folder name from path
+ * Get folder name from path (handles both Windows and Unix paths)
  */
 export function getFolderName(directoryPath: string): string {
-  const parts = directoryPath.split('/').filter(p => p);
+  // Normalize path separators - handle both / and \
+  const normalizedPath = directoryPath.replace(/\\/g, '/');
+  const parts = normalizedPath.split('/').filter(p => p);
   return parts[parts.length - 1] || 'qc_state';
 }
 

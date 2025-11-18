@@ -16,7 +16,9 @@ export interface SavedState {
  */
 export function getStateFilePath(directory: string): string {
   const folderName = getFolderName(directory);
-  return `${directory}/${folderName}.json`;
+  // Use the same path separator as the input directory
+  const separator = directory.includes('\\') ? '\\' : '/';
+  return `${directory}${separator}${folderName}.json`;
 }
 
 /**

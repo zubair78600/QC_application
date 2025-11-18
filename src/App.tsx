@@ -261,9 +261,10 @@ function App() {
 	        // New session
 	        const newCSVFilename = generateCSVFilename(name);
 	        setCSVFilename(newCSVFilename);
-	
+
 	        // Try to load existing CSV
-	        const csvPath = `${baseDirectory}/${newCSVFilename}`;
+	        const separator = baseDirectory.includes('\\') ? '\\' : '/';
+	        const csvPath = `${baseDirectory}${separator}${newCSVFilename}`;
 	        const csvResults = await loadCSV(csvPath);
 	        if (Object.keys(csvResults).length > 0) {
 	          loadStoreState({ results: csvResults });
@@ -480,7 +481,8 @@ function App() {
 
     try {
       console.log('[Save] Starting save operation...');
-      const csvPath = `${workingDirectory}/${csvFilename}`;
+      const separator = workingDirectory.includes('\\') ? '\\' : '/';
+      const csvPath = `${workingDirectory}${separator}${csvFilename}`;
 
       // Save CSV
       console.log('[Save] Saving CSV to:', csvPath);
