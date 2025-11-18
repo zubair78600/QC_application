@@ -20,6 +20,7 @@
     ]
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "title": "QC Image Checker",

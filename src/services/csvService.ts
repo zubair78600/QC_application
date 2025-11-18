@@ -126,6 +126,36 @@ export async function saveCSV(
       console.log('[CSV] ✓ CSV saved successfully');
     } catch (writeError) {
       console.error('[CSV] ✗ Write failed:', writeError);
+
+      // Windows-specific retry logic for file permission/locking issues
+      const errorStr = String(writeError).toLowerCase();
+      if (errorStr.includes('permission') ||
+          errorStr.includes('access is denied') ||
+          errorStr.includes('being used by another process')) {
+
+        console.warn('[CSV] File may be locked or permissions issue detected. Attempting retry with alternate filename...');
+
+        // Try alternate filename (add _temp suffix before extension)
+        const retryPath = filePath.replace(/\.CSV$/i, '_temp.CSV');
+
+        try {
+          await invoke('write_text_file', {
+            filePath: retryPath,
+            content: csv,
+          });
+          console.log('[CSV] ✓ CSV saved to alternate location:', retryPath);
+
+          // Alert user about the alternate file
+          if (typeof window !== 'undefined') {
+            alert(`Warning: Original CSV file was locked.\nData saved to: ${retryPath}\n\nPlease close any programs using the CSV file.`);
+          }
+          return; // Success with alternate file
+        } catch (retryError) {
+          console.error('[CSV] ✗ Retry also failed:', retryError);
+          throw new Error(`Failed to write CSV even with retry: ${retryError}`);
+        }
+      }
+
       throw new Error(`Failed to write CSV: ${writeError}`);
     }
   } catch (error) {

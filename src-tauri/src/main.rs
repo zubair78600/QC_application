@@ -55,18 +55,30 @@ fn read_text_file(file_path: String) -> Result<String, String> {
 
 #[tauri::command]
 fn write_text_file(file_path: String, content: String) -> Result<(), String> {
+    // Normalize path for Windows compatibility
+    let normalized_path = file_path.replace("/", "\\");
+    let path = if cfg!(windows) { &normalized_path } else { &file_path };
+
     // Create parent directories if they don't exist
-    if let Some(parent) = Path::new(&file_path).parent() {
+    if let Some(parent) = Path::new(path).parent() {
         if !parent.exists() {
             if let Err(e) = fs::create_dir_all(parent) {
-                return Err(format!("Failed to create directory: {}", e));
+                return Err(format!("Failed to create directory '{}': {}", parent.display(), e));
             }
         }
     }
 
-    match fs::write(&file_path, content) {
+    // Write file with detailed error reporting
+    match fs::write(path, content) {
         Ok(_) => Ok(()),
-        Err(e) => Err(format!("Failed to write file: {}", e)),
+        Err(e) => {
+            // Provide more detailed error message for Windows debugging
+            let error_kind = e.kind();
+            Err(format!(
+                "Failed to write file '{}': {} (Error kind: {:?})",
+                path, e, error_kind
+            ))
+        }
     }
 }
 
@@ -260,7 +272,23 @@ fn main() {
                 &[&settings_item, &user_names_item, &separator, &close_item],
             )?;
 
-            let app_menu = Menu::with_items(app_handle, &[&file_submenu])?;
+            // Build Developer menu with DevTools toggle
+            let devtools_item = MenuItem::with_id(
+                app_handle,
+                "toggle-devtools",
+                "Toggle Developer Tools",
+                true,
+                Some("F12"),
+            )?;
+
+            let developer_submenu = Submenu::with_items(
+                app_handle,
+                "Developer",
+                true,
+                &[&devtools_item],
+            )?;
+
+            let app_menu = Menu::with_items(app_handle, &[&file_submenu, &developer_submenu])?;
             app.set_menu(app_menu)?;
 
             // Handle menu events
@@ -271,6 +299,16 @@ fn main() {
                     }
                     "open-usernames" => {
                         let _ = app.emit("open-usernames", ());
+                    }
+                    "toggle-devtools" => {
+                        // Toggle DevTools for the main window
+                        if let Some(window) = app.get_webview_window("main") {
+                            if window.is_devtools_open() {
+                                let _ = window.close_devtools();
+                            } else {
+                                let _ = window.open_devtools();
+                            }
+                        }
                     }
                     "Cards & Observations" => {
                         let _ = app.emit("open-cards-settings", ());

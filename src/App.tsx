@@ -538,6 +538,7 @@ function App() {
       );
       handleSave();
       setCurrentIndex(currentIndex + 1);
+      setFocusedPanel('qc'); // Reset focus to QC panel after navigation
     }
   };
 
@@ -546,6 +547,7 @@ function App() {
     if (currentIndex > 0) {
       handleSave();
       setCurrentIndex(currentIndex - 1);
+      setFocusedPanel('qc'); // Reset focus to QC panel after navigation
     }
   };
 
@@ -553,12 +555,14 @@ function App() {
     // No mandatory field check for backward navigation
     handleSave();
     setCurrentIndex(0);
+    setFocusedPanel('qc'); // Reset focus to QC panel after navigation
   };
 
   const handleLast = () => {
     // No mandatory field check for backward navigation
     handleSave();
     setCurrentIndex(filteredImageList.length - 1);
+    setFocusedPanel('qc'); // Reset focus to QC panel after navigation
   };
 
 	  // Auto-advance logic (currently not used with grid layout)
@@ -771,19 +775,14 @@ function App() {
     }
   };
 
-  // Check if we should auto-advance or change focus after completing an action
+  // Check if we should auto-advance after completing all required fields
   const checkAutoAdvanceOrFocus = (filename: string) => {
     const result = getResult(filename);
     if (!result) return;
 
-    // If QC Decision and at least one QC Observation is selected, auto-focus to Retouch
-    if (focusedPanel === 'qc' && result['QC Decision'] && result['QC Observations']) {
-      setTimeout(() => {
-        setFocusedPanel('retouch');
-      }, 100);
-    }
-    // If Retouch Quality is selected and we're on retouch panel, check for auto-advance
-    else if (focusedPanel === 'retouch' && result['Retouch Quality']) {
+    // Only auto-advance to next image when all required fields are complete
+    // User must manually switch between QC and Retouch panels using arrow keys
+    if (focusedPanel === 'retouch' && result['Retouch Quality']) {
       // Check if all required fields are complete for auto-advance
       if (result['QC Decision'] && result['Next Action']) {
         setTimeout(() => {
