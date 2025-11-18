@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { open } from '@tauri-apps/plugin-dialog';
 import { useAppStore } from '../../store/appStore';
 import { CustomCard } from '../../types';
 import { QCPanel } from '../QCPanel/QCPanel';
@@ -459,7 +460,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                     type="button"
                     onClick={async () => {
                       try {
-                        const { open } = await import('@tauri-apps/plugin-dialog');
                         const selected = await open({
                           multiple: false,
                           title: 'Select Wallpaper Image or Video',
