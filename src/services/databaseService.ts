@@ -35,7 +35,13 @@ export async function saveQcRecordToDatabase(options: SaveRecordOptions): Promis
     options;
 
   // Extract dynamic custom-card fields into a JSON blob
-  const customFieldNames = customCards.map((card) => card.fieldName);
+  const customFieldNames: string[] = [];
+  customCards.forEach((card) => {
+    customFieldNames.push(card.fieldName);
+    if (card.type === 'decision_observation' && card.observationFieldName) {
+      customFieldNames.push(card.observationFieldName);
+    }
+  });
   const customFields: Record<string, string> = {};
 
   for (const fieldName of customFieldNames) {

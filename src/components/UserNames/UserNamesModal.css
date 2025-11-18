@@ -1,0 +1,101 @@
+.usernames-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(14px) saturate(var(--saturation));
+  -webkit-backdrop-filter: blur(14px) saturate(var(--saturation));
+}
+
+.usernames-card {
+  width: 420px;
+  max-width: 90vw;
+  max-height: 80vh;
+  padding: 20px 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.usernames-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.usernames-info {
+  margin: 0;
+  font-size: 13px;
+  color: #555;
+}
+
+.usernames-list {
+  margin-top: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.usernames-empty {
+  font-size: 13px;
+  color: #777;
+}
+
+.usernames-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background-color: color-mix(in srgb, var(--c-glass) 12%, transparent);
+}
+
+.usernames-item-label {
+  font-size: 14px;
+  color: #333;
+}
+
+.usernames-delete-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.usernames-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.usernames-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.usernames-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.usernames-footer {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+

@@ -67,7 +67,13 @@ export async function saveCSV(
 ): Promise<void> {
   try {
     // Get all custom card field names
-    const customFieldNames = customCards.map((card) => card.fieldName);
+    const customFieldNames: string[] = [];
+    customCards.forEach((card) => {
+      customFieldNames.push(card.fieldName);
+      if (card.type === 'decision_observation' && card.observationFieldName) {
+        customFieldNames.push(card.observationFieldName);
+      }
+    });
 
     // Create column order: base columns + custom fields
     const allColumns = [...BASE_COLUMNS, ...customFieldNames];

@@ -33,7 +33,7 @@ export const CardsSettingsModal: React.FC<CardsSettingsModalProps> = ({ onClose 
   const [customFormData, setCustomFormData] = useState({
     title: '',
     fieldName: '',
-    type: 'text' as 'text' | 'select' | 'multiselect',
+    type: 'text' as 'text' | 'select' | 'multiselect' | 'decision_observation',
     options: '',
     mandatory: false
   });

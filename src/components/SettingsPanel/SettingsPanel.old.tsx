@@ -14,7 +14,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose }) => {
   const [formData, setFormData] = useState({
     title: '',
     fieldName: '',
-    type: 'text' as 'text' | 'select' | 'multiselect',
+    type: 'text' as 'text' | 'select' | 'multiselect' | 'decision_observation',
     options: '',
     mandatory: false
   });

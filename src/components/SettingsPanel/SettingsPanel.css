@@ -1110,6 +1110,31 @@
   justify-content: flex-end;
 }
 
+.wallpaper-settings {
+  margin-top: 24px;
+  padding-top: 12px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.wallpaper-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.wallpaper-status {
+  font-size: 13px;
+  color: #555;
+}
+
+.wallpaper-actions {
+  display: flex;
+  gap: 8px;
+}
+
 @media (max-width: 768px) {
   .custom-cards-tab {
     grid-template-columns: 1fr;

@@ -12,28 +12,28 @@ export const CustomCardModal: React.FC<CustomCardModalProps> = ({ card, onClose 
   const { customCards, addCustomCard, updateCustomCard } = useAppStore();
 
   const [formData, setFormData] = useState({
-    title: '',
-    fieldName: '',
-    type: 'text' as 'text' | 'select' | 'multiselect',
+    name: '',
+    type: 'text' as 'text' | 'select' | 'multiselect' | 'decision_observation',
     options: '',
+    observationOptions: '',
     mandatory: false,
   });
 
   useEffect(() => {
     if (card) {
       setFormData({
-        title: card.title,
-        fieldName: card.fieldName,
+        name: card.title,
         type: card.type,
         options: card.options?.join(', ') || '',
+        observationOptions: card.observationOptions?.join(', ') || '',
         mandatory: card.mandatory,
       });
     } else {
       setFormData({
-        title: '',
-        fieldName: '',
+        name: '',
         type: 'text',
         options: '',
+        observationOptions: '',
         mandatory: false,
       });
     }
@@ -42,18 +42,34 @@ export const CustomCardModal: React.FC<CustomCardModalProps> = ({ card, onClose 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const title = formData.name.trim();
+    const generatedFieldName =
+      card?.fieldName ||
+      title.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+
     const newCard: CustomCard = {
       id: card?.id || `custom_${Date.now()}`,
-      title: formData.title,
-      fieldName: formData.fieldName,
+      title,
+      fieldName: generatedFieldName || `field_${Date.now()}`,
       type: formData.type,
       options:
-        formData.type !== 'text'
-          ? formData.options
+        formData.type === 'text'
+          ? undefined
+          : formData.options
+              .split(',')
+              .map((o) => o.trim())
+              .filter(Boolean),
+      observationOptions:
+        formData.type === 'decision_observation'
+          ? formData.observationOptions
               .split(',')
               .map((o) => o.trim())
               .filter(Boolean)
           : undefined,
+      observationFieldName:
+        formData.type === 'decision_observation'
+          ? `${generatedFieldName || `field_${Date.now()}`}_Observations`
+          : card?.observationFieldName,
       mandatory: formData.mandatory,
       order: card?.order ?? customCards.length,
     };
@@ -80,23 +96,12 @@ export const CustomCardModal: React.FC<CustomCardModalProps> = ({ card, onClose 
         <form onSubmit={handleSubmit}>
           <div className="panel-config-section">
             <div className="form-group">
-              <label>Title *</label>
+              <label>Name *</label>
               <input
                 type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="e.g., Image Quality"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Field Name *</label>
-              <input
-                type="text"
-                value={formData.fieldName}
-                onChange={(e) => setFormData({ ...formData, fieldName: e.target.value })}
-                placeholder="e.g., Image_Quality"
                 required
               />
             </div>
@@ -108,23 +113,45 @@ export const CustomCardModal: React.FC<CustomCardModalProps> = ({ card, onClose 
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    type: e.target.value as 'text' | 'select' | 'multiselect',
+                    type: e.target.value as
+                      | 'text'
+                      | 'select'
+                      | 'multiselect'
+                      | 'decision_observation',
                   })
                 }
               >
                 <option value="text">Text Input</option>
                 <option value="select">Single Select</option>
                 <option value="multiselect">Multi Select</option>
+                <option value="decision_observation">Decision + Observations</option>
               </select>
             </div>
 
-            {(formData.type === 'select' || formData.type === 'multiselect') && (
+            {(formData.type === 'select' ||
+              formData.type === 'multiselect' ||
+              formData.type === 'decision_observation') && (
               <div className="form-group">
                 <label>Options *</label>
                 <textarea
                   value={formData.options}
                   onChange={(e) => setFormData({ ...formData, options: e.target.value })}
                   placeholder="Excellent, Good, Average, Poor"
+                  rows={3}
+                  required
+                />
+              </div>
+            )}
+
+            {formData.type === 'decision_observation' && (
+              <div className="form-group">
+                <label>Observation Options *</label>
+                <textarea
+                  value={formData.observationOptions}
+                  onChange={(e) =>
+                    setFormData({ ...formData, observationOptions: e.target.value })
+                  }
+                  placeholder="Outline, Shadow, Comment"
                   rows={3}
                   required
                 />
@@ -161,4 +188,3 @@ export const CustomCardModal: React.FC<CustomCardModalProps> = ({ card, onClose 
     </div>
   );
 }
-

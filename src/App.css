@@ -1,4 +1,34 @@
+.app-root {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.wallpaper-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.wallpaper-image {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.wallpaper-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .app-container {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: 100vh;
   display: flex;

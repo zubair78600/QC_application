@@ -66,6 +66,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   results: {},
   qcName: '',
   csvFilename: '',
+  qcNames: DEFAULT_QC_NAMES,
   showIncompleteOnly: false,
   customCards: [],
   gridLayout: DEFAULT_GRID_LAYOUT,
@@ -85,6 +86,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     shadowBlur: 12,
     shadowAngle: 0,
   },
+  wallpaper: {
+    mode: 'default',
+    source: null,
+  },
 
   // Actions
   setWorkingDirectory: (dir) => set({ workingDirectory: dir }),
@@ -96,6 +101,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   setQCName: (name) => set({ qcName: name }),
 
   setCSVFilename: (filename) => set({ csvFilename: filename }),
+
+  setQCNames: (names) => set({ qcNames: names }),
+
+  addQCName: (name) =>
+    set((state) => ({
+      qcNames: state.qcNames.includes(name) ? state.qcNames : [...state.qcNames, name],
+    })),
+
+  deleteQCName: (name) =>
+    set((state) => ({
+      qcNames: state.qcNames.filter((n) => n !== name),
+    })),
+
+  resetQCNames: () => set({ qcNames: DEFAULT_QC_NAMES }),
 
   updateResult: (filename, data) => {
     const state = get();
@@ -145,6 +164,12 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   reorderCustomCards: (cards) => {
     set({ customCards: cards });
+  },
+
+  resetCustomCards: () => {
+    set({
+      customCards: [],
+    });
   },
 
   // QC Observations management
@@ -261,6 +286,19 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 
+  setWallpaper: (wallpaper) => {
+    set({ wallpaper });
+  },
+
+  resetWallpaper: () => {
+    set({
+      wallpaper: {
+        mode: 'default',
+        source: null,
+      },
+    });
+  },
+
   loadState: (newState) => {
     set((state) => ({
       ...state,
@@ -276,6 +314,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       results: {},
       qcName: '',
       csvFilename: '',
+      qcNames: DEFAULT_QC_NAMES,
       showIncompleteOnly: false,
       customCards: [],
       gridLayout: DEFAULT_GRID_LAYOUT,
@@ -285,6 +324,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       qcObservations: DEFAULT_QC_OBSERVATIONS,
       retouchObservations: DEFAULT_RETOUCH_OBSERVATIONS,
       nextActionOptions: DEFAULT_NEXT_ACTIONS,
+      wallpaper: {
+        mode: 'default',
+        source: null,
+      },
     });
   },
 }));

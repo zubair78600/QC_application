@@ -8,10 +8,10 @@
 
 .simple-panel {
   border-radius: var(--card-radius, 16px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  background: white;
-  overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: none;
+  background: transparent;
+  overflow: visible;
+  border: none;
 }
 
 /* Ensure panels without drag handles use full height */
@@ -87,9 +87,9 @@
 .simple-panel-content {
   flex: 1;
   overflow: hidden;
-  background-color: color-mix(in srgb, var(--c-glass) 15%, transparent);
-  backdrop-filter: blur(8px) saturate(var(--saturation));
-  -webkit-backdrop-filter: blur(8px) saturate(var(--saturation));
+  background-color: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
   border-radius: var(--card-radius, 16px);
   height: 100%;
   transition: height 0.2s ease, border-radius 0.2s ease;
@@ -104,9 +104,7 @@
 
 /* Override any existing panel styles to ensure proper sizing - preserve glass effect */
 .simple-panel-content .glass-card {
-  background: transparent !important;
-  border: none !important;
-  /* DO NOT override box-shadow - preserve glass effect shadows */
+  /* Use standard glass-card visuals (analytics style), only enforce layout */
   border-radius: var(--card-radius, 16px) !important;
   height: 100% !important;
   display: flex !important;
@@ -119,7 +117,6 @@
   height: 100% !important;
   display: flex !important;
   flex-direction: column !important;
-  background: transparent !important;
 }
 
 /* Ensure panel content fills available space */

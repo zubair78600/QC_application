@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAppStore } from '../../store/appStore';
 import { CustomCard } from '../../types';
 import './CustomCardPanel.css';
@@ -9,149 +9,283 @@ interface CustomCardPanelProps {
   onUpdate: () => void;
 }
 
+const isCommentLabel = (label: string) => label.toLowerCase().includes('comment');
+
 export const CustomCardPanel: React.FC<CustomCardPanelProps> = ({
   card,
   currentFilename,
-  onUpdate
+  onUpdate,
 }) => {
   const { getResult, updateResult } = useAppStore();
-  const [value, setValue] = useState('');
-  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
-  const [commentText, setCommentText] = useState('');
-  const [isCommentMode, setIsCommentMode] = useState(false);
 
-  const isCommentLabel = (label: string) => label.toLowerCase().includes('comment');
+  // Generic text/select/multiselect state
+  const [textValue, setTextValue] = useState('');
+  const [selectValue, setSelectValue] = useState('');
+  const [multiSelected, setMultiSelected] = useState<string[]>([]);
+  const [selectComment, setSelectComment] = useState('');
+  const [selectCommentMode, setSelectCommentMode] = useState(false);
+
+  // Decision + observations state
+  const [decision, setDecision] = useState('');
+  const [obsSelected, setObsSelected] = useState<string[]>([]);
+  const [obsComment, setObsComment] = useState('');
+
   const commentOption =
     card.options?.find((opt) => isCommentLabel(opt)) || null;
 
-  // Load current value when filename changes
+  const observationCommentOptions =
+    card.observationOptions?.filter((opt) => isCommentLabel(opt)) || [];
+
+  const getObsFieldName = () =>
+    card.observationFieldName || `${card.fieldName}_Observations`;
+
+  // Load state from current record
   useEffect(() => {
-    if (currentFilename) {
-      const result = getResult(currentFilename);
-      if (result && result[card.fieldName]) {
-        const savedValue = result[card.fieldName];
-        if (card.type === 'multiselect') {
-          const parts = savedValue.split(';').filter(Boolean);
-          if (card.options && card.options.length > 0) {
-            const optionSet = new Set(card.options);
-            const opts: string[] = [];
-            const comments: string[] = [];
-            parts.forEach((p) => {
-              if (optionSet.has(p)) {
-                opts.push(p);
-              } else {
-                comments.push(p);
-              }
-            });
-            setSelectedOptions(opts);
-            if (comments.length > 0) {
-              setIsCommentMode(true);
-              setCommentText(comments.join('; '));
-            } else {
-              setIsCommentMode(false);
-              setCommentText('');
-            }
+    if (!currentFilename) {
+      setTextValue('');
+      setSelectValue('');
+      setMultiSelected([]);
+      setSelectComment('');
+      setSelectCommentMode(false);
+      setDecision('');
+      setObsSelected([]);
+      setObsComment('');
+      return;
+    }
+
+    const result = getResult(currentFilename);
+    if (!result) {
+      setTextValue('');
+      setSelectValue('');
+      setMultiSelected([]);
+      setSelectComment('');
+      setSelectCommentMode(false);
+      setDecision('');
+      setObsSelected([]);
+      setObsComment('');
+      return;
+    }
+
+    const raw = result[card.fieldName] || '';
+
+    if (card.type === 'text') {
+      setTextValue(raw);
+      return;
+    }
+
+    if (card.type === 'select') {
+      if (card.options && card.options.includes(raw)) {
+        setSelectValue(raw);
+        setSelectComment('');
+        setSelectCommentMode(false);
+      } else {
+        setSelectValue('');
+        setSelectComment(raw);
+        setSelectCommentMode(!!raw);
+      }
+      return;
+    }
+
+    if (card.type === 'multiselect') {
+      const parts = raw.split(';').filter(Boolean);
+      if (card.options && card.options.length > 0) {
+        const optionSet = new Set(card.options);
+        const opts: string[] = [];
+        const comments: string[] = [];
+        parts.forEach((p) => {
+          if (optionSet.has(p)) {
+            opts.push(p);
           } else {
-            setSelectedOptions(parts);
-            setIsCommentMode(false);
-            setCommentText('');
+            comments.push(p);
           }
+        });
+        setMultiSelected(opts);
+        if (comments.length > 0) {
+          setSelectComment(comments.join('; '));
+          setSelectCommentMode(true);
         } else {
-          if (card.options && card.options.length > 0) {
-            const optionSet = new Set(card.options);
-            if (optionSet.has(savedValue)) {
-              setValue(savedValue);
-              setIsCommentMode(false);
-              setCommentText('');
-            } else {
-              setValue('');
-              setIsCommentMode(true);
-              setCommentText(savedValue);
-            }
-          } else {
-            setValue(savedValue);
-            setIsCommentMode(false);
-            setCommentText('');
-          }
+          setSelectComment('');
+          setSelectCommentMode(false);
         }
       } else {
-        setValue('');
-        setSelectedOptions([]);
-        setCommentText('');
-        setIsCommentMode(false);
+        setMultiSelected(parts);
+        setSelectComment('');
+        setSelectCommentMode(false);
+      }
+      return;
+    }
+
+    if (card.type === 'decision_observation') {
+      setDecision(raw);
+      const obsField = getObsFieldName();
+      const obsRaw = result[obsField] || '';
+      const parts = obsRaw.split(';').filter(Boolean);
+
+      if (card.observationOptions && card.observationOptions.length > 0) {
+        const optionSet = new Set(card.observationOptions);
+        const opts: string[] = [];
+        const comments: string[] = [];
+        parts.forEach((p) => {
+          if (optionSet.has(p)) {
+            opts.push(p);
+          } else {
+            comments.push(p);
+          }
+        });
+        setObsSelected(opts);
+        setObsComment(comments.join('; '));
+      } else {
+        setObsSelected(parts);
+        setObsComment('');
       }
     }
-  }, [currentFilename, card.fieldName, card.type, card.options]);
+  }, [
+    currentFilename,
+    card.fieldName,
+    card.type,
+    card.options,
+    card.observationOptions,
+    card.observationFieldName,
+    getResult,
+  ]);
 
-  const saveFieldValue = (newValue: string) => {
+  const savePatch = (patch: Record<string, string>) => {
     if (!currentFilename) return;
     const result = getResult(currentFilename);
     if (!result) return;
-    updateResult(currentFilename, {
-      ...result,
-      [card.fieldName]: newValue,
-    });
+    updateResult(currentFilename, patch);
     onUpdate();
   };
 
+  // Handlers for basic types
   const handleTextChange = (newValue: string) => {
-    setValue(newValue);
-    saveFieldValue(newValue);
+    setTextValue(newValue);
+    savePatch({ [card.fieldName]: newValue });
   };
 
   const handleSelectChange = (option: string) => {
-    const isCommentOption = commentOption !== null && option === commentOption;
+    const isComment = commentOption !== null && option === commentOption;
 
-    if (isCommentOption) {
-      setIsCommentMode(true);
-      setValue('');
-      if (!commentText) {
-        saveFieldValue('');
+    if (isComment) {
+      const newMode = !selectCommentMode;
+      setSelectCommentMode(newMode);
+      setSelectValue('');
+      if (!newMode) {
+        setSelectComment('');
+        savePatch({ [card.fieldName]: '' });
       } else {
-        saveFieldValue(commentText);
+        savePatch({ [card.fieldName]: selectComment });
       }
     } else {
-      setIsCommentMode(false);
-      setCommentText('');
-      setValue(option);
-      saveFieldValue(option);
+      setSelectCommentMode(false);
+      setSelectComment('');
+      const newValue = selectValue === option ? '' : option;
+      setSelectValue(newValue);
+      savePatch({ [card.fieldName]: newValue });
     }
   };
 
-  const handleMultiSelectToggle = (option: string) => {
-    const isCommentOption = commentOption !== null && option === commentOption;
+  const handleMultiToggle = (option: string) => {
+    const isComment = commentOption !== null && option === commentOption;
+    let next = multiSelected;
 
-    let newSelected: string[] = selectedOptions;
-    if (isCommentOption) {
-      setIsCommentMode((prev) => !prev);
-    } else {
-      if (selectedOptions.includes(option)) {
-        newSelected = selectedOptions.filter((o) => o !== option);
-      } else {
-        newSelected = [...selectedOptions, option];
+    if (isComment) {
+      const newMode = !selectCommentMode;
+      setSelectCommentMode(newMode);
+      if (!newMode) {
+        setSelectComment('');
       }
-      setSelectedOptions(newSelected);
+    } else {
+      if (multiSelected.includes(option)) {
+        next = multiSelected.filter((o) => o !== option);
+      } else {
+        next = [...multiSelected, option];
+      }
+      setMultiSelected(next);
     }
 
-    const parts: string[] = [...newSelected];
-    if (isCommentMode && commentText.trim()) {
-      parts.push(commentText.trim());
+    const parts: string[] = [...next];
+    if (selectCommentMode && selectComment.trim()) {
+      parts.push(selectComment.trim());
     }
-    saveFieldValue(parts.join(';'));
+    savePatch({ [card.fieldName]: parts.join(';') });
   };
+
+  // Handlers for decision + observations
+  const saveDecisionAndObs = (newDecision: string, obsVals: string[], comment: string) => {
+    const obsField = getObsFieldName();
+    const parts: string[] = [...obsVals];
+    if (comment.trim()) {
+      parts.push(comment.trim());
+    }
+    savePatch({
+      [card.fieldName]: newDecision,
+      [obsField]: parts.join(';'),
+    });
+  };
+
+  const handleDecisionClick = (option: string) => {
+    const newDecision = decision === option ? '' : option;
+    setDecision(newDecision);
+    saveDecisionAndObs(newDecision, obsSelected, obsComment);
+  };
+
+  const handleObsToggle = (label: string) => {
+    const isComment = observationCommentOptions.includes(label);
+    let next = obsSelected;
+
+    if (isComment) {
+      if (obsSelected.includes(label)) {
+        next = obsSelected.filter((o) => o !== label);
+      } else {
+        // ensure only one comment flag
+        next = [...obsSelected.filter((o) => !observationCommentOptions.includes(o)), label];
+      }
+    } else {
+      if (obsSelected.includes(label)) {
+        next = obsSelected.filter((o) => o !== label);
+      } else {
+        next = [...obsSelected, label];
+      }
+    }
+
+    setObsSelected(next);
+    saveDecisionAndObs(decision, next, obsComment);
+  };
+
+  const handleObsCommentChange = (value: string) => {
+    setObsComment(value);
+    saveDecisionAndObs(decision, obsSelected, value);
+  };
+
+  const showObsComment =
+    obsComment.trim().length > 0 ||
+    obsSelected.some((o) => observationCommentOptions.includes(o));
 
   return (
-    <div className="glass-card qc-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div className="panel-title" style={{ padding: '5px 12px', fontWeight: 600, fontSize: '14px' }}>
-        {card.title}: {card.mandatory && <span style={{ color: '#c62828', fontSize: '12px' }}>*</span>}
+    <div
+      className="glass-card qc-panel"
+      style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+    >
+      <div
+        className="panel-title"
+        style={{ padding: '5px 12px', fontWeight: 600, fontSize: '14px' }}
+      >
+        {card.title}: {card.mandatory && (
+          <span style={{ color: '#c62828', fontSize: '12px' }}>*</span>
+        )}
       </div>
 
-      <div className="panel-content" style={{ padding: '10px 20px 20px 20px', flex: 1, overflow: 'hidden' }}>
+      <div
+        className="panel-content"
+        style={{ padding: '10px 20px 20px 20px', flex: 1, overflow: 'hidden' }}
+      >
+        {/* Text input */}
         {card.type === 'text' && (
           <>
             {card.title.toLowerCase().includes('comment') ? (
               <textarea
-                value={value}
+                value={textValue}
                 onChange={(e) => handleTextChange(e.target.value)}
                 placeholder={`Enter ${card.title.toLowerCase()}...`}
                 className="custom-text-input"
@@ -164,24 +298,12 @@ export const CustomCardPanel: React.FC<CustomCardPanelProps> = ({
                   fontSize: '13px',
                   outline: 'none',
                   resize: 'vertical',
-                  backgroundColor: 'color-mix(in srgb, var(--c-glass) 12%, transparent)',
-                  backdropFilter: 'blur(8px) saturate(150%)',
-                  WebkitBackdropFilter: 'blur(8px) saturate(150%)',
-                  color: '#333',
-                  fontFamily: '"DM Sans", sans-serif',
-                  boxShadow: `
-                    inset 0 0 0 1px color-mix(in srgb, var(--c-light) 10%, transparent),
-                    inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) 90%, transparent),
-                    inset -2px -2px 0px -2px color-mix(in srgb, var(--c-light) 80%, transparent),
-                    inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) 60%, transparent),
-                    0px 1px 5px 0px color-mix(in srgb, var(--c-dark) 10%, transparent)
-                  `
                 }}
               />
             ) : (
               <input
                 type="text"
-                value={value}
+                value={textValue}
                 onChange={(e) => handleTextChange(e.target.value)}
                 placeholder={`Enter ${card.title.toLowerCase()}...`}
                 className="custom-text-input"
@@ -192,116 +314,163 @@ export const CustomCardPanel: React.FC<CustomCardPanelProps> = ({
                   borderRadius: '8px',
                   fontSize: '13px',
                   outline: 'none',
-                  backgroundColor: 'color-mix(in srgb, var(--c-glass) 12%, transparent)',
-                  backdropFilter: 'blur(8px) saturate(150%)',
-                  WebkitBackdropFilter: 'blur(8px) saturate(150%)',
-                  color: '#333',
-                  fontFamily: '"DM Sans", sans-serif',
-                  boxShadow: `
-                    inset 0 0 0 1px color-mix(in srgb, var(--c-light) 10%, transparent),
-                    inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) 90%, transparent),
-                    inset -2px -2px 0px -2px color-mix(in srgb, var(--c-light) 80%, transparent),
-                    inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) 60%, transparent),
-                    0px 1px 5px 0px color-mix(in srgb, var(--c-dark) 10%, transparent)
-                  `
                 }}
               />
             )}
           </>
         )}
 
+        {/* Single select */}
         {card.type === 'select' && card.options && (
-          <div className="qc-options">
-            {card.options.map((option) => (
-              <button
-                key={option}
-                className={`qc-btn ${
-                  value === option ||
-                  (isCommentMode && commentOption !== null && option === commentOption)
-                    ? 'selected'
-                    : ''
-                }`}
-                onClick={() => handleSelectChange(option)}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
+          <>
+            <div className="qc-options">
+              {card.options.map((option) => (
+                <button
+                  key={option}
+                  className={`qc-btn ${
+                    selectValue === option ||
+                    (selectCommentMode && commentOption !== null && option === commentOption)
+                      ? 'selected'
+                      : ''
+                  }`}
+                  onClick={() => handleSelectChange(option)}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+            {selectCommentMode && commentOption && (
+              <div style={{ marginTop: '8px' }}>
+                <input
+                  type="text"
+                  placeholder={`Enter ${commentOption.toLowerCase()}...`}
+                  value={selectComment}
+                  onChange={(e) => {
+                    const newComment = e.target.value;
+                    setSelectComment(newComment);
+                    savePatch({ [card.fieldName]: newComment });
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+            )}
+          </>
         )}
 
+        {/* Multi select */}
         {card.type === 'multiselect' && card.options && (
-          <div className="qc-options" style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-            {card.options.map((option) => (
-              <button
-                key={option}
-                className={`qc-btn ${
-                  selectedOptions.includes(option) ||
-                  (isCommentMode && commentOption !== null && option === commentOption)
-                    ? 'selected'
-                    : ''
-                }`}
-                onClick={() => handleMultiSelectToggle(option)}
-                style={{ minWidth: 'auto', flex: '0 1 auto' }}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
+          <>
+            <div
+              className="qc-options"
+              style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}
+            >
+              {card.options.map((option) => (
+                <button
+                  key={option}
+                  className={`qc-btn ${
+                    multiSelected.includes(option) ||
+                    (selectCommentMode && commentOption !== null && option === commentOption)
+                      ? 'selected'
+                      : ''
+                  }`}
+                  onClick={() => handleMultiToggle(option)}
+                  style={{ minWidth: 'auto', flex: '0 1 auto' }}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+
+            {selectCommentMode && commentOption && (
+              <div style={{ marginTop: '8px' }}>
+                <input
+                  type="text"
+                  placeholder={`Enter ${commentOption.toLowerCase()}...`}
+                  value={selectComment}
+                  onChange={(e) => {
+                    const newComment = e.target.value;
+                    setSelectComment(newComment);
+                    const parts: string[] = [...multiSelected];
+                    if (newComment.trim()) {
+                      parts.push(newComment.trim());
+                    }
+                    savePatch({ [card.fieldName]: parts.join(';') });
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+            )}
+          </>
         )}
 
-        {value && card.type === 'text' && (
-          <div style={{ marginTop: '8px', fontSize: '11px', color: '#666' }}>
-            Current: {value}
-          </div>
-        )}
+        {/* Decision + Observations card */}
+        {card.type === 'decision_observation' && (
+          <>
+            <div className="card-section">
+              <h3 className="section-title">Decision:</h3>
+              <div className="button-group">
+                {card.options?.map((option) => (
+                  <button
+                    key={option}
+                    className={`btn-option ${decision === option ? 'btn-active' : ''}`}
+                    onClick={() => handleDecisionClick(option)}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        {selectedOptions.length > 0 && card.type === 'multiselect' && (
-          <div style={{ marginTop: '8px', fontSize: '11px', color: '#666' }}>
-            Selected: {selectedOptions.join(', ')}
-          </div>
-        )}
-
-        {isCommentMode && commentOption && card.type !== 'text' && (
-          <div style={{ marginTop: '8px' }}>
-            <input
-              type="text"
-              placeholder={`Enter ${commentOption.toLowerCase()}...`}
-              value={commentText}
-              onChange={(e) => {
-                const newComment = e.target.value;
-                setCommentText(newComment);
-                if (card.type === 'select') {
-                  saveFieldValue(newComment);
-                } else if (card.type === 'multiselect') {
-                  const parts: string[] = [...selectedOptions];
-                  if (newComment.trim()) {
-                    parts.push(newComment.trim());
-                  }
-                  saveFieldValue(parts.join(';'));
-                }
-              }}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '13px',
-                outline: 'none',
-                backgroundColor: 'color-mix(in srgb, var(--c-glass) 12%, transparent)',
-                backdropFilter: 'blur(8px) saturate(150%)',
-                WebkitBackdropFilter: 'blur(8px) saturate(150%)',
-                color: '#333',
-                fontFamily: '"DM Sans", sans-serif',
-                boxShadow: `
-                  inset 0 0 0 1px color-mix(in srgb, var(--c-light) 10%, transparent),
-                  inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) 90%, transparent),
-                  inset -2px -2px 0px -2px color-mix(in srgb, var(--c-light) 80%, transparent),
-                  inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) 60%, transparent),
-                  0px 1px 5px 0px color-mix(in srgb, var(--c-dark) 10%, transparent)
-                `,
-              }}
-            />
-          </div>
+            <div className="card-section" style={{ marginTop: '12px' }}>
+              <h3 className="section-title">Observations:</h3>
+              <div className="observation-grid">
+                {card.observationOptions?.map((label) => {
+                  const isSelected = obsSelected.includes(label);
+                  return (
+                    <button
+                      key={label}
+                      className={`obs-btn ${isSelected ? 'obs-active' : ''}`}
+                      onClick={() => handleObsToggle(label)}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              {showObsComment && (
+                <div style={{ width: '100%', marginTop: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder="Enter observations comment..."
+                    value={obsComment}
+                    onChange={(e) => handleObsCommentChange(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
     </div>

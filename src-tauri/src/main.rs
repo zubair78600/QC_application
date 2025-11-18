@@ -3,7 +3,11 @@
 
 use std::fs;
 use std::path::Path;
-use tauri::Emitter;
+use tauri::{
+    menu::{Menu, MenuItem, PredefinedMenuItem, Submenu},
+    Emitter,
+    Manager,
+};
 
 mod database;
 
@@ -229,12 +233,45 @@ fn main() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
-            // For now, skip the menu setup to focus on core functionality
-            // TODO: Implement menu with proper Tauri 2.x API once menu structure is finalized
+            let app_handle = app.app_handle();
+
+            // Build File menu with Settings, User Names, and Close Window
+            let settings_item = MenuItem::with_id(
+                app_handle,
+                "open-settings",
+                "Settings",
+                true,
+                Some("CmdOrCtrl+,"),
+            )?;
+            let user_names_item = MenuItem::with_id(
+                app_handle,
+                "open-usernames",
+                "User Names",
+                true,
+                None::<&str>,
+            )?;
+            let separator = PredefinedMenuItem::separator(app_handle)?;
+            let close_item = PredefinedMenuItem::close_window(app_handle, None)?;
+
+            let file_submenu = Submenu::with_items(
+                app_handle,
+                "File",
+                true,
+                &[&settings_item, &user_names_item, &separator, &close_item],
+            )?;
+
+            let app_menu = Menu::with_items(app_handle, &[&file_submenu])?;
+            app.set_menu(app_menu)?;
 
             // Handle menu events
             app.on_menu_event(move |app, event| {
                 match event.id().as_ref() {
+                    "open-settings" => {
+                        let _ = app.emit("open-settings", ());
+                    }
+                    "open-usernames" => {
+                        let _ = app.emit("open-usernames", ());
+                    }
                     "Cards & Observations" => {
                         let _ = app.emit("open-cards-settings", ());
                     }

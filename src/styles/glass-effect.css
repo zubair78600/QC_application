@@ -480,6 +480,15 @@ button {
   -webkit-backdrop-filter: blur(18px) saturate(var(--saturation));
 }
 
+.startup-wallpaper-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
 .startup-card {
   width: 420px;
   max-width: 90vw;

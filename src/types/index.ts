@@ -21,8 +21,10 @@ export interface CustomCard {
   id: string;
   title: string;
   fieldName: string;
-  type: "text" | "select" | "multiselect";
-  options?: string[];
+  type: "text" | "select" | "multiselect" | "decision_observation";
+  options?: string[]; // primary / decision options
+  observationOptions?: string[]; // secondary / observations
+  observationFieldName?: string;
   mandatory: boolean;
   order: number;
 }
@@ -60,6 +62,9 @@ export interface AppState {
   qcName: string;
   csvFilename: string;
 
+  // QC user names list (configurable)
+  qcNames: string[];
+
   // UI state
   showIncompleteOnly: boolean;
   customCards: CustomCard[];
@@ -85,6 +90,12 @@ export interface AppState {
     shadowAngle: number;
   };
 
+  // Wallpaper / background media
+  wallpaper: {
+    mode: 'default' | 'image' | 'video';
+    source: string | null;
+  };
+
   // Actions
   setWorkingDirectory: (dir: string | null) => void;
   setImageList: (images: string[]) => void;
@@ -98,6 +109,7 @@ export interface AppState {
   updateCustomCard: (id: string, card: Partial<CustomCard>) => void;
   deleteCustomCard: (id: string) => void;
   reorderCustomCards: (cards: CustomCard[]) => void;
+  resetCustomCards: () => void;
   updateQCObservation: (id: string, updates: Partial<ObservationOption>) => void;
   addQCObservation: (observation: ObservationOption) => void;
   deleteQCObservation: (id: string) => void;
@@ -113,6 +125,12 @@ export interface AppState {
   setIsReorganizeMode: (mode: boolean) => void;
   resetGridLayout: () => void;
   updateColorSettings: (colors: Partial<AppState['colorSettings']>) => void;
+  setQCNames: (names: string[]) => void;
+  addQCName: (name: string) => void;
+  deleteQCName: (name: string) => void;
+  resetQCNames: () => void;
+  setWallpaper: (wallpaper: AppState['wallpaper']) => void;
+  resetWallpaper: () => void;
   loadState: (state: Partial<AppState>) => void;
   resetState: () => void;
 }

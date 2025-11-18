@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke, convertFileSrc } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { listen } from '@tauri-apps/api/event';
@@ -9,6 +9,7 @@ import SimpleLayoutManager, { LayoutManagerRef } from './components/GridLayout/S
 import { NavigationBar } from './components/NavigationBar/NavigationBar';
 import { SettingsPanel } from './components/SettingsPanel/SettingsPanel';
 import { ButtonEffectsPanel } from './components/SettingsPanel/ButtonEffectsPanel';
+import { UserNamesModal } from './components/UserNames/UserNamesModal';
 import { AnalyticsDashboard } from './components/Analytics/AnalyticsDashboard';
 import { loadCSV, saveCSV } from './services/csvService';
 import { loadState, saveState } from './services/stateService';
@@ -26,6 +27,8 @@ import { QCRecord } from './types';
 import './styles/glass-effect.css';
 import './App.css';
 
+const DEFAULT_WALLPAPER_SRC = new URL('../assets/Wallpaper.jpeg', import.meta.url).href;
+
 function App() {
 	  const {
 	    workingDirectory,
@@ -34,6 +37,7 @@ function App() {
 	    results,
 	    qcName,
 	    csvFilename,
+	    qcNames,
 	    showIncompleteOnly,
 	    customCards,
 	    isReorganizeMode,
@@ -43,6 +47,7 @@ function App() {
 	    retouchObservations,
 	    nextActionOptions,
 	    colorSettings,
+	    wallpaper,
 	    setWorkingDirectory,
 	    setImageList,
 	    setCurrentIndex,
@@ -62,6 +67,7 @@ function App() {
 	  const [showSettings, setShowSettings] = useState(false);
 	  const [showButtonEffects, setShowButtonEffects] = useState(false);
 	  const [showAnalytics, setShowAnalytics] = useState(false);
+	  const [showUserNames, setShowUserNames] = useState(false);
 	  const [imageViewerHeight, setImageViewerHeight] = useState<number>(400);
 	  const [focusedPanel, setFocusedPanel] = useState<'qc' | 'retouch'>('qc'); // Track which panel is focused
 	  const layoutManagerRef = useRef<LayoutManagerRef>(null);
@@ -76,6 +82,9 @@ function App() {
       try {
         await listen('open-settings', () => {
           setShowSettings(true);
+        });
+        await listen('open-usernames', () => {
+          setShowUserNames(true);
         });
       } catch (error) {
         console.log('Menu event listeners available');
@@ -113,10 +122,63 @@ function App() {
 	      const baseDirectory = selectedDir as string;
 	      setWorkingDirectory(baseDirectory);
 
-      // Prompt for QC Name - create a glass-effect select dialog
+      // Ensure database exists and load global app settings (including wallpaper and user names)
+      let loadedSettings: Record<string, unknown> = {};
+      try {
+        await initDatabase(baseDirectory);
+        loadedSettings = await loadAppSettings();
+      } catch (settingsError) {
+        console.error('Error initializing app settings from database:', settingsError);
+      }
+
+      // Compute wallpaper for startup "Select Your Name" screen
+      let startupWallpaperUrl = DEFAULT_WALLPAPER_SRC;
+      let startupWallpaperMode: 'default' | 'image' | 'video' = 'default';
+      const wallpaperSetting = loadedSettings.wallpaper as
+        | { mode?: string; source?: string | null }
+        | undefined;
+
+      if (
+        wallpaperSetting &&
+        (wallpaperSetting.mode === 'image' || wallpaperSetting.mode === 'video') &&
+        wallpaperSetting.source
+      ) {
+        startupWallpaperMode = wallpaperSetting.mode as 'image' | 'video';
+        try {
+          startupWallpaperUrl = convertFileSrc(wallpaperSetting.source);
+        } catch (err) {
+          console.error('Error resolving startup wallpaper path:', err);
+          startupWallpaperUrl = DEFAULT_WALLPAPER_SRC;
+          startupWallpaperMode = 'default';
+        }
+      }
+
+      // Determine selectable QC names from saved settings (fallback to defaults)
+      const selectableNamesFromSettings =
+        Array.isArray(loadedSettings.qcNames) && (loadedSettings.qcNames as string[]).length > 0
+          ? (loadedSettings.qcNames as string[])
+          : DEFAULT_QC_NAMES;
+
+      // Prompt for QC Name - create a glass-effect select dialog using loaded QC names
       const name = await new Promise<string>((resolve) => {
         const dialog = document.createElement('div');
         dialog.className = 'startup-overlay';
+
+        // Apply wallpaper background to the startup overlay
+        if (startupWallpaperMode === 'video' && startupWallpaperUrl) {
+          const video = document.createElement('video');
+          video.src = startupWallpaperUrl;
+          video.autoplay = true;
+          video.loop = true;
+          video.muted = true;
+          video.playsInline = true;
+          video.className = 'startup-wallpaper-video';
+          dialog.appendChild(video);
+        } else if (startupWallpaperUrl) {
+          dialog.style.backgroundImage = `url(${startupWallpaperUrl})`;
+          dialog.style.backgroundSize = 'cover';
+          dialog.style.backgroundPosition = 'center';
+        }
 
         const content = document.createElement('div');
         content.className = 'glass-card startup-card';
@@ -128,7 +190,8 @@ function App() {
         const select = document.createElement('select');
         select.className = 'glass-select startup-select';
 
-        DEFAULT_QC_NAMES.forEach(qcName => {
+        const selectableNames = selectableNamesFromSettings;
+        selectableNames.forEach(qcName => {
           const option = document.createElement('option');
           option.value = qcName;
           option.textContent = qcName;
@@ -167,9 +230,8 @@ function App() {
 	      setImageList(images);
 	      setFilteredImageList(images);
 
-	      // Initialize database and start a new QC session
+	      // Start a new QC session
 	      try {
-	        await initDatabase(baseDirectory);
 	        const newSessionId = await createSession(baseDirectory, name, baseDirectory);
 	        setSessionId(newSessionId);
 
@@ -208,9 +270,10 @@ function App() {
 	        }
 	      }
 	
-	      // Load global app settings (custom cards, decisions, observations, next actions, colors) from database
+	      // Load global app settings (custom cards, decisions, observations, next actions, colors,
+	      // QC names, wallpaper, image viewer height) from database (already loaded above)
 	      try {
-	        const settings = await loadAppSettings();
+	        const settings = loadedSettings;
 	        const statePatch: any = {};
 	        if (settings.customCards) {
 	          statePatch.customCards = settings.customCards;
@@ -232,6 +295,12 @@ function App() {
 	        }
 	        if (settings.colorSettings) {
 	          statePatch.colorSettings = settings.colorSettings;
+	        }
+	        if (settings.qcNames) {
+	          statePatch.qcNames = settings.qcNames;
+	        }
+	        if (settings.wallpaper) {
+	          statePatch.wallpaper = settings.wallpaper;
 	        }
 	        if (Object.keys(statePatch).length > 0) {
 	          loadStoreState(statePatch);
@@ -336,7 +405,8 @@ function App() {
 	    saveCustomCards();
 	  }, [customCards, workingDirectory, csvFilename, currentIndex, imageList, results, qcName]);
 
-		  // Persist app settings (custom cards, decisions, observations, next actions, colors, image viewer height) to database
+		  // Persist app settings (custom cards, decisions, observations, next actions, colors,
+		  // QC names, wallpaper, image viewer height) to database
 		  useEffect(() => {
 		    if (!isInitialized) return;
 
@@ -349,13 +419,15 @@ function App() {
 		        await saveAppSetting('retouchObservations', retouchObservations);
 		        await saveAppSetting('nextActionOptions', nextActionOptions);
 		        await saveAppSetting('colorSettings', colorSettings);
+		        await saveAppSetting('qcNames', qcNames);
+		        await saveAppSetting('wallpaper', wallpaper);
 		        await saveAppSetting('imageViewerHeight', imageViewerHeight);
 		      } catch (error) {
 		        console.error('Error saving app settings to database:', error);
 		      }
 		    };
 		    saveSettingsToDb();
-		  }, [isInitialized, customCards, qcDecisionOptions, retouchDecisionOptions, qcObservations, retouchObservations, nextActionOptions, colorSettings, imageViewerHeight]);
+		  }, [isInitialized, customCards, qcDecisionOptions, retouchDecisionOptions, qcObservations, retouchObservations, nextActionOptions, colorSettings, qcNames, wallpaper, imageViewerHeight]);
 
   // Record timing and save the current image to the database
   const recordTimeForCurrentImage = useCallback(async () => {
@@ -955,7 +1027,8 @@ function App() {
   console.log('App: currentImagePath:', currentImagePath);
 
   return (
-    <div className="app-container">
+    <div className="app-root">
+      <div className="app-container">
       {/* Reorganize Mode Banner and Toolbar */}
       {isReorganizeMode && (
         <>
@@ -1069,6 +1142,11 @@ function App() {
 	          onClose={() => setShowAnalytics(false)}
 	        />
 	      )}
+
+	      {showUserNames && (
+	        <UserNamesModal onClose={() => setShowUserNames(false)} />
+	      )}
+      </div>
     </div>
   );
 }
