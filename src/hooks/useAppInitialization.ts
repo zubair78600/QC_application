@@ -7,12 +7,13 @@ import {
     createSession,
     getDatabasePath,
     loadAppSettings,
+    saveAppSetting,
 } from '../services/databaseService';
 import { loadState } from '../services/stateService';
 import { loadCSV } from '../services/csvService';
 import { generateCSVFilename } from '../services/fileUtils';
 
-const DEFAULT_WALLPAPER_SRC = new URL('../assets/Wallpaper.jpeg', import.meta.url).href;
+const DEFAULT_WALLPAPER_SRC = new URL('../../assets/Wallpaper.jpeg', import.meta.url).href;
 
 export function useAppInitialization() {
     const {
@@ -187,7 +188,32 @@ export function useAppInitialization() {
                 if (settings.qcObservations) statePatch.qcObservations = settings.qcObservations;
                 if (settings.retouchObservations) statePatch.retouchObservations = settings.retouchObservations;
                 if (settings.nextActionOptions) statePatch.nextActionOptions = settings.nextActionOptions;
-                if (settings.colorSettings) statePatch.colorSettings = settings.colorSettings;
+                if (settings.nextActionOptions) statePatch.nextActionOptions = settings.nextActionOptions;
+
+                // Handle color settings with migration for old defaults
+                if (settings.colorSettings) {
+                    const loadedColors = settings.colorSettings as any;
+                    // Check for old defaults (Opacity 0.15, Blur 12, Angle 0)
+                    if (loadedColors.shadowOpacity === 0.15 && loadedColors.shadowBlur === 12 && loadedColors.shadowAngle === 0) {
+                        console.log('Migrating old default color settings to new defaults');
+                        statePatch.colorSettings = {
+                            ...loadedColors,
+                            shadowOpacity: 0.25,
+                            shadowBlur: 7,
+                            shadowAngle: 45,
+                        };
+                        // Save the migrated settings immediately
+                        saveAppSetting('colorSettings', statePatch.colorSettings);
+                    } else {
+                        statePatch.colorSettings = settings.colorSettings;
+                    }
+                } else {
+                    // No colorSettings in database - save defaults to database for first time
+                    console.log('No color settings found in database, initializing with defaults');
+                    const { DEFAULT_COLOR_SETTINGS } = await import('../store/appStore');
+                    statePatch.colorSettings = DEFAULT_COLOR_SETTINGS;
+                    saveAppSetting('colorSettings', DEFAULT_COLOR_SETTINGS);
+                }
                 if (settings.qcNames) statePatch.qcNames = settings.qcNames;
                 if (settings.wallpaper) statePatch.wallpaper = settings.wallpaper;
 
@@ -216,6 +242,35 @@ export function useAppInitialization() {
         initializeApp();
     }, []);
 
+    const updateStartupWallpaper = async (mode: 'default' | 'image' | 'video', source: string | null) => {
+        try {
+            // Update local state
+            setStartupWallpaperMode(mode);
+            if (mode === 'default') {
+                setStartupWallpaperUrl(DEFAULT_WALLPAPER_SRC);
+            } else if (source) {
+                setStartupWallpaperUrl(convertFileSrc(source));
+            }
+
+            // Update store
+            const { setWallpaper } = useAppStore.getState();
+            setWallpaper({ mode, source });
+
+            // Save to database
+            await saveAppSetting('wallpaper', { mode, source });
+
+            // Update loaded settings cache
+            setLoadedSettings(prev => ({
+                ...prev,
+                wallpaper: { mode, source }
+            }));
+
+        } catch (error) {
+            console.error('Error updating wallpaper:', error);
+            alert(`Error updating wallpaper: ${error}`);
+        }
+    };
+
     return {
         isInitialized,
         showNameSelection,
@@ -223,6 +278,7 @@ export function useAppInitialization() {
         startupWallpaperMode,
         selectableNames,
         finalizeInitialization,
+        updateStartupWallpaper,
         loadedSettings, // Exported in case needed, though mostly used internally
     };
 }

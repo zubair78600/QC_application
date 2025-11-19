@@ -11,8 +11,6 @@ export const ShortcutsMap: React.FC<ShortcutsMapProps> = ({ onClose }) => {
         qcDecisionOptions,
         retouchDecisionOptions,
         nextActionOptions,
-        qcObservations,
-        retouchObservations,
     } = useAppStore();
 
     // Close on Escape key

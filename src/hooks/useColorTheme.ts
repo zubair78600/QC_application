@@ -16,18 +16,15 @@ export const useColorTheme = () => {
     // Update body background
     document.body.style.background = colorSettings.backgroundColor;
 
-    // Apply shadow settings to panels
+    // Apply shadow settings to CSS variables
     const shadowX = Math.cos((colorSettings.shadowAngle * Math.PI) / 180) * (colorSettings.shadowBlur / 2);
     const shadowY = Math.sin((colorSettings.shadowAngle * Math.PI) / 180) * (colorSettings.shadowBlur / 2);
-    const shadowValue = `${shadowX}px ${shadowY}px ${colorSettings.shadowBlur}px rgba(0, 0, 0, ${colorSettings.shadowOpacity})`;
 
-    // Apply to simple-panel elements
-    const panelElements = document.querySelectorAll('.simple-panel');
-    panelElements.forEach((element) => {
-      if (element instanceof HTMLElement) {
-        element.style.boxShadow = shadowValue;
-      }
-    });
+    // Set shadow CSS variables for use in glass-effect.css
+    root.style.setProperty('--shadow-x', `${shadowX}px`);
+    root.style.setProperty('--shadow-y', `${shadowY}px`);
+    root.style.setProperty('--shadow-blur', `${colorSettings.shadowBlur}px`);
+    root.style.setProperty('--shadow-opacity', `${colorSettings.shadowOpacity}`);
 
     // Note: All glass-based elements now use glass color (--c-glass) exclusively.
     // Primary color is only used for selected items via --c-active.

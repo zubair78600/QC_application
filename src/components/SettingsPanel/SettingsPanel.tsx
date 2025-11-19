@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { open } from '@tauri-apps/plugin-dialog';
 import { useAppStore } from '../../store/appStore';
 import { CustomCard } from '../../types';
 import { QCPanel } from '../QCPanel/QCPanel';
@@ -12,7 +11,6 @@ import './SettingsPanel.css';
 
 interface SettingsPanelProps {
   onClose: () => void;
-  onOpenButtonEffects?: () => void;
   onOpenButtonEffects?: () => void;
   onOpenAnalyticsDashboard?: () => void;
   onOpenShortcutsMap?: () => void;
@@ -31,9 +29,6 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
     deleteCustomCard,
     resetCustomCards,
     updateColorSettings,
-    wallpaper,
-    setWallpaper,
-    resetWallpaper,
   } = useAppStore();
 
   const [isDragging, setIsDragging] = useState(false);
@@ -457,64 +452,8 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 </div>
               </div>
 
-              <div className="wallpaper-settings">
-                <h4>Wallpaper</h4>
-                <p className="info-text">
-                  Choose a background image or video for the QC workspace.
-                </p>
-                <div className="wallpaper-row">
-                  <div className="wallpaper-status">
-                    {wallpaper.mode === 'default' && <span>Using default wallpaper</span>}
-                    {wallpaper.mode === 'image' && <span>Custom image selected</span>}
-                    {wallpaper.mode === 'video' && <span>Custom video selected</span>}
-                  </div>
-                  <div className="wallpaper-actions">
-                    <button
-                      className="effect-btn"
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          const selected = await open({
-                            multiple: false,
-                            title: 'Select Wallpaper Image or Video',
-                            filters: [
-                              {
-                                name: 'Media',
-                                extensions: ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'mp4', 'mov', 'webm'],
-                              },
-                            ],
-                          });
-                          if (!selected) return;
-                          const path = selected as string;
-                          const lower = path.toLowerCase();
-                          const isVideo =
-                            lower.endsWith('.mp4') || lower.endsWith('.mov') || lower.endsWith('.webm');
-                          setWallpaper({
-                            mode: isVideo ? 'video' : 'image',
-                            source: path,
-                          });
-                        } catch (error) {
-                          console.error('Error selecting wallpaper:', error);
-                        }
-                      }}
-                    >
-                      Change Wallpaper
-                    </button>
-                    <button
-                      className="effect-btn"
-                      type="button"
-                      onClick={() => {
-                        if (confirm('Reset wallpaper to default image?')) {
-                          resetWallpaper();
-                        }
-                      }}
-                    >
-                      Reset to Default
-                    </button>
-                  </div>
-                </div>
-              </div>
             </div>
+
           )}
         </div>
         {activePanelModal && (
@@ -527,7 +466,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
           />
         )}
       </div>
-    </div>
+    </div >
   );
 };
 

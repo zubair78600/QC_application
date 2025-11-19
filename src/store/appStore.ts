@@ -58,6 +58,17 @@ const DEFAULT_NEXT_ACTIONS = [
   { id: 'blunder', label: 'Blunder', shortcut: 'F' },
 ];
 
+export const DEFAULT_COLOR_SETTINGS = {
+  primaryColor: '#667eea',
+  activeColor: '#ffae0c',
+  backgroundColor: '#ece9e9',
+  glassColor: '#8e8e8e',
+  cardRadius: 16,
+  shadowOpacity: 0.25,
+  shadowBlur: 7,
+  shadowAngle: 45,
+};
+
 export const useAppStore = create<AppState>((set, get) => ({
   // Initial state
   workingDirectory: null,
@@ -79,16 +90,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   qcObservations: DEFAULT_QC_OBSERVATIONS,
   retouchObservations: DEFAULT_RETOUCH_OBSERVATIONS,
   nextActionOptions: DEFAULT_NEXT_ACTIONS,
-  colorSettings: {
-    primaryColor: '#667eea',
-    activeColor: '#ffae0c',
-    backgroundColor: '#ece9e9',
-    glassColor: '#8e8e8e',
-    cardRadius: 16,
-    shadowOpacity: 0.15,
-    shadowBlur: 12,
-    shadowAngle: 0,
-  },
+  colorSettings: DEFAULT_COLOR_SETTINGS,
   wallpaper: {
     mode: 'default',
     source: null,

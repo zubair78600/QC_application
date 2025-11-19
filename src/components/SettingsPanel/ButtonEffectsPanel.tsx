@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAppStore } from '../../store/appStore';
+import { saveAppSetting } from '../../services/databaseService';
 import './SettingsPanel.css';
 
 interface ButtonEffectsPanelProps {
@@ -77,7 +78,12 @@ export const ButtonEffectsPanel: React.FC<ButtonEffectsPanelProps> = ({ onClose 
     onClose();
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    try {
+      await saveAppSetting('colorSettings', colorSettings);
+    } catch (error) {
+      console.error('Error saving button effects:', error);
+    }
     onClose();
   };
 

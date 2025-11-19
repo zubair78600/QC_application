@@ -136,7 +136,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ baseDire
             marginBottom: 8,
           }}
         >
-          <h2 className="startup-title" style={{ marginBottom: 0 }}>
+          <h2 className="startup-title" style={{ marginBottom: 0, color: 'black' }}>
             Analytics Dashboard
           </h2>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>

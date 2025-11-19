@@ -18,6 +18,11 @@
   --glass-reflex-dark: 1;
   --glass-reflex-light: 1;
   --saturation: 150%;
+  /* Shadow settings - defaults matching DEFAULT_COLOR_SETTINGS */
+  --shadow-x: 4.95px;
+  --shadow-y: 4.95px;
+  --shadow-blur: 7px;
+  --shadow-opacity: 0.25;
 }
 
 body {
@@ -134,7 +139,12 @@ button {
 .glass-card.retouch-panel,
 .glass-card.next-action-panel,
 .glass-card.status-bar {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb,
+  box-shadow:
+    /* Outer drop shadows for depth */
+    var(--shadow-x, 4.95px) var(--shadow-y, 4.95px) var(--shadow-blur, 7px) rgba(0, 0, 0, var(--shadow-opacity, 0.25)),
+    0px 2px 8px rgba(0, 0, 0, calc(var(--shadow-opacity, 0.25) * 0.5)),
+    /* Inner glass reflections */
+    inset 0 0 0 1px color-mix(in srgb,
       var(--c-light) calc(var(--glass-reflex-light) * 10%),
       transparent),
     inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 90%), transparent),
@@ -149,12 +159,6 @@ button {
     inset 0px 3px 4px -2px color-mix(in srgb, var(--c-dark) calc(var(--glass-reflex-dark) * 20%), transparent),
     inset 2px -6.5px 1px -4px color-mix(in srgb,
       var(--c-dark) calc(var(--glass-reflex-dark) * 10%),
-      transparent),
-    0px 1px 5px 0px color-mix(in srgb,
-      var(--c-dark) calc(var(--glass-reflex-dark) * 10%),
-      transparent),
-    0px 6px 16px 0px color-mix(in srgb,
-      var(--c-dark) calc(var(--glass-reflex-dark) * 8%),
       transparent) !important;
 }
 
@@ -196,15 +200,14 @@ button {
   cursor: pointer;
   transition: all 300ms cubic-bezier(1, 0, 0.4, 1);
   font-family: "DM Sans", sans-serif;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb,
+  box-shadow:
+    var(--shadow-x, 4.95px) var(--shadow-y, 4.95px) var(--shadow-blur, 7px) rgba(0, 0, 0, var(--shadow-opacity, 0.25)),
+    inset 0 0 0 1px color-mix(in srgb,
       var(--c-light) calc(var(--glass-reflex-light) * 10%),
       transparent),
     inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 90%), transparent),
     inset -2px -2px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 80%), transparent),
-    inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 60%), transparent),
-    0px 1px 5px 0px color-mix(in srgb,
-      var(--c-dark) calc(var(--glass-reflex-dark) * 10%),
-      transparent);
+    inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 60%), transparent);
 }
 
 .btn-option:hover {
@@ -245,15 +248,14 @@ button {
   cursor: pointer;
   transition: all 300ms cubic-bezier(1, 0, 0.4, 1);
   font-family: "DM Sans", sans-serif;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb,
+  box-shadow:
+    var(--shadow-x, 4.95px) var(--shadow-y, 4.95px) var(--shadow-blur, 7px) rgba(0, 0, 0, var(--shadow-opacity, 0.25)),
+    inset 0 0 0 1px color-mix(in srgb,
       var(--c-light) calc(var(--glass-reflex-light) * 10%),
       transparent),
     inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 90%), transparent),
     inset -2px -2px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 80%), transparent),
-    inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 60%), transparent),
-    0px 1px 5px 0px color-mix(in srgb,
-      var(--c-dark) calc(var(--glass-reflex-dark) * 10%),
-      transparent);
+    inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 60%), transparent);
   white-space: nowrap;
 }
 
@@ -300,10 +302,7 @@ button {
       transparent),
     inset 1.8px 3px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 90%), transparent),
     inset -2px -2px 0px -2px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 80%), transparent),
-    inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 60%), transparent),
-    0px 1px 5px 0px color-mix(in srgb,
-      var(--c-dark) calc(var(--glass-reflex-dark) * 10%),
-      transparent);
+    inset -3px -8px 1px -6px color-mix(in srgb, var(--c-light) calc(var(--glass-reflex-light) * 60%), transparent);
 }
 
 .action-btn:hover {

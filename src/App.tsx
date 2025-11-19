@@ -26,8 +26,6 @@ import { QCRecord } from './types';
 import './styles/glass-effect.css';
 import './App.css';
 
-// DEFAULT_WALLPAPER_SRC removed
-
 function App() {
   const {
     workingDirectory,
@@ -65,7 +63,8 @@ function App() {
     startupWallpaperUrl,
     startupWallpaperMode,
     selectableNames,
-    finalizeInitialization
+    finalizeInitialization,
+    updateStartupWallpaper
   } = useAppInitialization();
 
   const [stats, setStats] = useState({ retouch: 0, retake: 0, wrong: 0, completed: 0 });
@@ -558,20 +557,6 @@ function App() {
     // Only auto-advance to next image when all required fields are complete
     // User must manually switch between QC and Retouch panels using arrow keys
     if (focusedPanel === 'retouch' && result['Retouch Quality']) {
-      // Save and Exit shortcut (Ctrl+S) - works even in input fields
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        handleSaveAndExit();
-        return;
-      }
-
-      // Toggle Shortcuts Map (?)
-      if (e.key === '?') {
-        e.preventDefault();
-        setShowShortcutsMap((prev) => !prev);
-        return;
-      }
-
       // If typing in input field, don't process other shortcuts
       if (result['QC Decision'] && result['Next Action']) {
         setTimeout(() => {
@@ -701,6 +686,7 @@ function App() {
         wallpaperUrl={startupWallpaperUrl}
         wallpaper={{ mode: startupWallpaperMode }}
         onSelect={finalizeInitialization}
+        onUpdateWallpaper={updateStartupWallpaper}
       />
     );
   }

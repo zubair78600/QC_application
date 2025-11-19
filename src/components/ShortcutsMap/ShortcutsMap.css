@@ -33,7 +33,7 @@
     font-size: 24px;
     font-weight: 700;
     margin: 0;
-    color: var(--c-content);
+    color: white;
 }
 
 .shortcuts-close-btn {
@@ -41,7 +41,7 @@
     border: none;
     font-size: 24px;
     cursor: pointer;
-    color: var(--c-content);
+    color: white;
     opacity: 0.6;
     transition: opacity 0.2s;
     padding: 4px;
@@ -55,7 +55,7 @@
 
 .shortcuts-close-btn:hover {
     opacity: 1;
-    background-color: rgba(0, 0, 0, 0.05);
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .shortcuts-grid {
@@ -72,8 +72,8 @@
     font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: var(--c-content);
-    opacity: 0.7;
+    color: white;
+    opacity: 0.8;
     margin-bottom: 12px;
     font-weight: 600;
 }
@@ -84,13 +84,14 @@
     justify-content: space-between;
     margin-bottom: 10px;
     padding: 8px 12px;
-    background-color: rgba(255, 255, 255, 0.3);
+    background-color: rgba(0, 0, 0, 0.3);
     border-radius: 8px;
     transition: background-color 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .shortcut-item:hover {
-    background-color: rgba(255, 255, 255, 0.5);
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
 .shortcut-keys {
@@ -105,12 +106,12 @@
     font-size: 13px;
     font-weight: 700;
     line-height: 1;
-    color: var(--c-content);
+    color: white;
     vertical-align: middle;
-    background-color: rgba(255, 255, 255, 0.8);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 6px;
-    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
     min-width: 28px;
     text-align: center;
 }
@@ -118,7 +119,7 @@
 .shortcut-desc {
     font-size: 14px;
     font-weight: 500;
-    color: var(--c-content);
+    color: white;
 }
 
 @keyframes fadeIn {
