@@ -3,15 +3,15 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::env;
+use directories::ProjectDirs;
 
 /// Determine database file path.
-/// The database is stored next to the application executable so that
-/// there is a single shared DB regardless of which image folder is used.
+/// Uses the system's local data directory (e.g., AppData/Roaming on Windows,
+/// Application Support on macOS) to ensure write permissions.
 fn get_db_path() -> PathBuf {
-    if let Ok(exe_path) = env::current_exe() {
-        if let Some(dir) = exe_path.parent() {
-            return dir.join("qc_analytics.sqlite");
-        }
+    if let Some(proj_dirs) = ProjectDirs::from("com", "qc", "imagechecker") {
+        let data_dir = proj_dirs.data_dir();
+        return data_dir.join("qc_analytics.sqlite");
     }
     // Fallback: current working directory
     Path::new("qc_analytics.sqlite").to_path_buf()
