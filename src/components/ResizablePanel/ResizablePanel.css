@@ -1,0 +1,70 @@
+.resizable-panel {
+  position: relative;
+  box-sizing: border-box;
+}
+
+.resizable-panel .panel-content {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+/* Resize handles */
+.resizable-panel .react-resizable-handle {
+  position: absolute;
+  z-index: 10;
+}
+
+.resizable-panel .react-resizable-handle-se {
+  bottom: 0;
+  right: 0;
+  cursor: se-resize;
+  width: 20px;
+  height: 20px;
+}
+
+.resizable-panel .react-resizable-handle-s {
+  bottom: 0;
+  left: 50%;
+  cursor: s-resize;
+  width: 100%;
+  height: 10px;
+  transform: translateX(-50%);
+}
+
+.resizable-panel .react-resizable-handle-e {
+  top: 50%;
+  right: 0;
+  cursor: e-resize;
+  width: 10px;
+  height: 100%;
+  transform: translateY(-50%);
+}
+
+/* Drag handle styles */
+.drag-handle {
+  cursor: move;
+  user-select: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Visual feedback for resize handles */
+.resizable-panel:hover .react-resizable-handle::after {
+  content: '';
+  position: absolute;
+  background: rgba(102, 126, 234, 0.3);
+  border-radius: 2px;
+}
+
+.resizable-panel .react-resizable-handle-se::after {
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  border-bottom: 2px solid rgba(102, 126, 234, 0.6);
+  border-right: 2px solid rgba(102, 126, 234, 0.6);
+}
