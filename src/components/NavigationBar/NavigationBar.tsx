@@ -17,6 +17,7 @@ interface NavigationBarProps {
   completedCount: number;
   currentFilename: string;
   onSave: () => void;
+  onMovePending: () => void;
   onOpenSettings?: () => void;
   activeControl?: string; // 'incomplete' when incomplete filter is active
 }
@@ -37,6 +38,7 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
   completedCount,
   currentFilename,
   onSave,
+  onMovePending,
   onOpenSettings,
   activeControl
 }) => {
@@ -83,6 +85,15 @@ export const NavigationBar: React.FC<NavigationBarProps> = ({
             onClick={handleButtonClick(onToggleIncomplete)}
           >
             {showIncompleteOnly ? 'All' : 'Incomplete'}
+          </button>
+
+          <button
+            className="nav-btn"
+            onClick={handleButtonClick(onMovePending)}
+            title="Move incomplete files to Pending folder"
+            style={{ backgroundColor: '#f59e0b', color: 'white', marginLeft: '4px' }}
+          >
+            📁 Move Pending
           </button>
 
           <div className="stats-group">

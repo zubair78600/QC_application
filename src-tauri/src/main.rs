@@ -239,6 +239,78 @@ fn organize_files(
     ))
 }
 
+#[tauri::command]
+fn move_files(
+    directory: String,
+    target_folder: String,
+    files: Vec<String>,
+) -> Result<String, String> {
+    let base_path = Path::new(&directory);
+    let target_path = base_path.join(&target_folder);
+
+    if !target_path.exists() {
+        if let Err(e) = fs::create_dir_all(&target_path) {
+            return Err(format!("Failed to create target folder: {}", e));
+        }
+    }
+
+    let mut moved_count = 0;
+    let mut errors = Vec::new();
+
+    for file_path in &files {
+        let source = Path::new(file_path);
+        let filename = source
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("unknown");
+        let destination = target_path.join(filename);
+
+        match fs::rename(source, &destination) {
+            Ok(_) => {
+                moved_count += 1;
+            }
+            Err(e) => {
+                // If rename fails (e.g., across partitions), try copy and delete
+                match fs::copy(source, &destination) {
+                    Ok(_) => {
+                        if let Err(del_err) = fs::remove_file(source) {
+                            errors.push(format!("Copied but failed to delete {}: {}", filename, del_err));
+                        } else {
+                            moved_count += 1;
+                        }
+                    }
+                    Err(copy_err) => {
+                        errors.push(format!("Failed to move {}: {} (Rename: {}, Copy: {})", filename, e, e, copy_err));
+                    }
+                }
+            }
+        }
+    }
+
+    if !errors.is_empty() {
+        return Err(format!("Moved {} files, but encountered errors: {:?}", moved_count, errors));
+    }
+
+    Ok(format!("Successfully moved {} files to {}", moved_count, target_folder))
+}
+
+#[tauri::command]
+fn get_default_wallpaper(app: tauri::AppHandle) -> Result<String, String> {
+    let resource_path = app
+        .path()
+        .resolve("assets/Lamborghini.mp4", tauri::path::BaseDirectory::Resource)
+        .map_err(|e| format!("Failed to resolve resource path: {}", e))?;
+
+    if !resource_path.exists() {
+        return Err("Default wallpaper not found in resources".to_string());
+    }
+
+    resource_path
+        .to_str()
+        .map(|s| s.to_string())
+        .ok_or_else(|| "Failed to convert path to string".to_string())
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
@@ -343,7 +415,9 @@ fn main() {
             database::get_analytics_records,
             database::save_app_setting,
             database::load_app_settings,
-            database::get_database_path
+            database::get_database_path,
+            move_files,
+            get_default_wallpaper
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

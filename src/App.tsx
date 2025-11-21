@@ -62,6 +62,8 @@ function App() {
     showNameSelection,
     startupWallpaperUrl,
     startupWallpaperMode,
+    startupWallpaperScale,
+    startupWallpaperFit,
     selectableNames,
     finalizeInitialization,
     updateStartupWallpaper
@@ -549,6 +551,62 @@ function App() {
     }
   };
 
+  const handleMovePending = async () => {
+    if (!workingDirectory) return;
+
+    // Identify incomplete files
+    const incompleteFiles = imageList.filter((img) => {
+      const filename = getBaseFilename(img);
+      const result = getResult(filename);
+
+      // No record at all = incomplete
+      if (!result) return true;
+
+      // Incomplete if any mandatory condition is not satisfied
+      return !isRecordComplete(
+        result['QC Decision'],
+        result['QC Observations'],
+        result['Retouch Quality'],
+        result['Retouch Observations'],
+        result['Next Action'],
+        customCards,
+        result
+      );
+    });
+
+    if (incompleteFiles.length === 0) {
+      alert('No incomplete files found.');
+      return;
+    }
+
+    if (incompleteFiles.length === 0) {
+      alert('No incomplete files found.');
+      return;
+    }
+
+    // Proceed directly without confirmation as requested
+    try {
+      const result = await invoke<string>('move_files', {
+        directory: workingDirectory,
+        targetFolder: 'Pending',
+        files: incompleteFiles,
+      });
+
+      alert(result);
+
+      // Refresh file list
+      const remainingFiles = imageList.filter(file => !incompleteFiles.includes(file));
+      // Update store with remaining files
+      useAppStore.getState().setImageList(remainingFiles);
+      useAppStore.getState().setFilteredImageList(remainingFiles);
+      useAppStore.getState().setCurrentIndex(0);
+
+    } catch (error) {
+      console.error('Error moving files:', error);
+      alert(`Error moving files: ${error}`);
+    }
+  };
+
   // Check if we should auto-advance after completing all required fields
   const checkAutoAdvanceOrFocus = (filename: string) => {
     const result = getResult(filename);
@@ -666,7 +724,11 @@ function App() {
       <StartupModal
         qcNames={selectableNames}
         wallpaperUrl={startupWallpaperUrl}
-        wallpaper={{ mode: startupWallpaperMode }}
+        wallpaper={{
+          mode: startupWallpaperMode,
+          scale: startupWallpaperScale,
+          fit: startupWallpaperFit
+        }}
         onSelect={finalizeInitialization}
         onUpdateWallpaper={updateStartupWallpaper}
       />
@@ -772,6 +834,7 @@ function App() {
           completedCount={stats.completed}
           currentFilename={currentFilename || ''}
           onSave={handleSaveAndExit}
+          onMovePending={handleMovePending}
           onOpenSettings={() => setShowSettings(true)}
           activeControl={showIncompleteOnly ? 'incomplete' : undefined}
         />

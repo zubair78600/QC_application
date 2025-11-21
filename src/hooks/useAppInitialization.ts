@@ -14,7 +14,7 @@ import { loadCSV } from '../services/csvService';
 import { generateCSVFilename, getBaseFilename } from '../services/fileUtils';
 import { QCRecord } from '../types';
 
-const DEFAULT_WALLPAPER_SRC = new URL('../../assets/Wallpaper.jpeg', import.meta.url).href;
+const DEFAULT_WALLPAPER_SRC = new URL('../../assets/Lamborghini.mp4', import.meta.url).href;
 
 export function useAppInitialization() {
     const {
@@ -32,6 +32,8 @@ export function useAppInitialization() {
     const [showNameSelection, setShowNameSelection] = useState(false);
     const [startupWallpaperUrl, setStartupWallpaperUrl] = useState(DEFAULT_WALLPAPER_SRC);
     const [startupWallpaperMode, setStartupWallpaperMode] = useState<'default' | 'image' | 'video'>('default');
+    const [startupWallpaperScale, setStartupWallpaperScale] = useState(100);
+    const [startupWallpaperFit, setStartupWallpaperFit] = useState(true);
     const [selectableNames, setSelectableNames] = useState<string[]>(DEFAULT_QC_NAMES);
     const [loadedSettings, setLoadedSettings] = useState<Record<string, unknown>>({});
 
@@ -88,26 +90,47 @@ export function useAppInitialization() {
             // Compute wallpaper
             let wallpaperUrl = DEFAULT_WALLPAPER_SRC;
             let wallpaperMode: 'default' | 'image' | 'video' = 'default';
+            let wallpaperScale = 100;
+            let wallpaperFit = true;
+
             const wallpaperSetting = settings.wallpaper as
-                | { mode?: string; source?: string | null }
+                | { mode?: string; source?: string | null; scale?: number; fit?: boolean }
                 | undefined;
 
-            if (
-                wallpaperSetting &&
-                (wallpaperSetting.mode === 'image' || wallpaperSetting.mode === 'video') &&
-                wallpaperSetting.source
-            ) {
-                wallpaperMode = wallpaperSetting.mode as 'image' | 'video';
-                try {
-                    wallpaperUrl = convertFileSrc(wallpaperSetting.source);
-                } catch (err) {
-                    console.error('Error resolving startup wallpaper path:', err);
-                    wallpaperUrl = DEFAULT_WALLPAPER_SRC;
-                    wallpaperMode = 'default';
+            if (wallpaperSetting) {
+                if (typeof wallpaperSetting.scale === 'number') wallpaperScale = wallpaperSetting.scale;
+                if (typeof wallpaperSetting.fit === 'boolean') wallpaperFit = wallpaperSetting.fit;
+
+                if (
+                    (wallpaperSetting.mode === 'image' || wallpaperSetting.mode === 'video') &&
+                    wallpaperSetting.source
+                ) {
+                    wallpaperMode = wallpaperSetting.mode as 'image' | 'video';
+                    try {
+                        wallpaperUrl = convertFileSrc(wallpaperSetting.source);
+                    } catch (err) {
+                        console.error('Error resolving startup wallpaper path:', err);
+                        // Fallback to default
+                    }
                 }
             }
+
+            // If default mode or fallback needed, try to get the bundled resource
+            if (wallpaperMode === 'default') {
+                try {
+                    const resourcePath = await invoke<string>('get_default_wallpaper');
+                    console.log('Resolved default wallpaper resource:', resourcePath);
+                    wallpaperUrl = convertFileSrc(resourcePath);
+                } catch (err) {
+                    console.warn('Could not resolve default wallpaper resource (dev mode?):', err);
+                    // Keep DEFAULT_WALLPAPER_SRC (import.meta.url) as fallback for dev
+                }
+            }
+
             setStartupWallpaperUrl(wallpaperUrl);
             setStartupWallpaperMode(wallpaperMode);
+            setStartupWallpaperScale(wallpaperScale);
+            setStartupWallpaperFit(wallpaperFit);
 
             // Determine selectable QC names
             const names =
@@ -243,10 +266,17 @@ export function useAppInitialization() {
         initializeApp();
     }, []);
 
-    const updateStartupWallpaper = async (mode: 'default' | 'image' | 'video', source: string | null) => {
+    const updateStartupWallpaper = async (
+        mode: 'default' | 'image' | 'video',
+        source: string | null,
+        scale: number = 100,
+        fit: boolean = true
+    ) => {
         try {
             // Update local state
             setStartupWallpaperMode(mode);
+            setStartupWallpaperScale(scale);
+            setStartupWallpaperFit(fit);
             if (mode === 'default') {
                 setStartupWallpaperUrl(DEFAULT_WALLPAPER_SRC);
             } else if (source) {
@@ -255,15 +285,16 @@ export function useAppInitialization() {
 
             // Update store
             const { setWallpaper } = useAppStore.getState();
-            setWallpaper({ mode, source });
+            const newWallpaper = { mode, source, scale, fit };
+            setWallpaper(newWallpaper);
 
             // Save to database
-            await saveAppSetting('wallpaper', { mode, source });
+            await saveAppSetting('wallpaper', newWallpaper);
 
             // Update loaded settings cache
             setLoadedSettings(prev => ({
                 ...prev,
-                wallpaper: { mode, source }
+                wallpaper: newWallpaper
             }));
 
         } catch (error) {
@@ -277,6 +308,8 @@ export function useAppInitialization() {
         showNameSelection,
         startupWallpaperUrl,
         startupWallpaperMode,
+        startupWallpaperScale,
+        startupWallpaperFit,
         selectableNames,
         finalizeInitialization,
         updateStartupWallpaper,

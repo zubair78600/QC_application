@@ -94,6 +94,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   wallpaper: {
     mode: 'default',
     source: null,
+    scale: 100,
+    fit: true,
   },
 
   // Actions
@@ -306,6 +308,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       wallpaper: {
         mode: 'default',
         source: null,
+        scale: 100,
+        fit: true,
       },
     });
   },
@@ -341,6 +345,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       wallpaper: {
         mode: 'default',
         source: null,
+        scale: 100,
+        fit: true,
       },
     });
   },

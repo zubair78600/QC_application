@@ -97,6 +97,8 @@ export interface AppState {
   wallpaper: {
     mode: 'default' | 'image' | 'video';
     source: string | null;
+    scale?: number;
+    fit?: boolean;
   };
 
   // Actions
